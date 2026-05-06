@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simulacrum — Jeremy McEntire</title>
+  <script>
+    // Apply theme synchronously before paint to avoid flash
+    (function() {
+      var t = localStorage.getItem('simulacrum_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  <style>
+    :root[data-theme="dark"] {
+      --bg: #1a1a1a;
+      --surface: #222;
+      --text: #e8e8e8;
+      --subtle: #888;
+      --empty: #666;
+      --border: #333;
+      --border-input: #444;
+      --accent: #ffb86c;
+      --accent-text: #1a1a1a;
+      --user-role: #6cb5ff;
+      --subject-role: #ffb86c;
+    }
+    :root[data-theme="light"] {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --text: #18181b;
+      --subtle: #52525b;
+      --empty: #a1a1aa;
+      --border: #e4e4e7;
+      --border-input: #d4d4d8;
+      --accent: #c2410c;
+      --accent-text: #ffffff;
+      --user-role: #1d4ed8;
+      --subject-role: #c2410c;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: var(--bg); color: var(--text); margin: 0; padding: 0;
+           display: flex; flex-direction: column; height: 100vh; }
+    header { padding: 12px 24px; border-bottom: 1px solid var(--border); background: var(--surface);
+             display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    h1 { margin: 0; font-size: 16px; font-weight: 500; }
+    .meta { font-size: 12px; color: var(--subtle); flex: 1; }
+    .meta a { color: var(--subtle); margin-left: 12px; }
+    .theme-toggle { background: transparent; color: var(--subtle); border: 1px solid var(--border-input);
+                    border-radius: 4px; padding: 4px 10px; font: inherit; font-size: 12px;
+                    cursor: pointer; flex: 0 0 auto; }
+    .theme-toggle:hover { color: var(--text); border-color: var(--text); }
+    #chat { flex: 1; overflow-y: auto; padding: 24px; max-width: 880px;
+            margin: 0 auto; width: 100%; }
+    .turn { margin-bottom: 24px; }
+    .role { font-size: 11px; color: var(--subtle); text-transform: uppercase;
+            letter-spacing: 0.05em; margin-bottom: 4px; }
+    .text { white-space: pre-wrap; line-height: 1.5; font-size: 15px; }
+    .role.user { color: var(--user-role); }
+    .role.jeremy { color: var(--subject-role); }
+    #input-row { display: flex; padding: 16px 24px; border-top: 1px solid var(--border);
+                 background: var(--surface); max-width: 880px; margin: 0 auto; width: 100%; gap: 8px; }
+    textarea { flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border-input);
+               border-radius: 4px; padding: 8px 12px; font: inherit; resize: none;
+               min-height: 60px; }
+    button { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 4px;
+             padding: 0 24px; font: inherit; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .empty { color: var(--empty); font-style: italic; text-align: center; margin-top: 40px; }
+    .hint { font-size: 12px; color: var(--subtle); margin-top: 8px; max-width: 880px;
+            margin-left: auto; margin-right: auto; padding: 0 24px 16px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Simulacrum — Jeremy McEntire</h1>
+    <span class="meta">Pitch an idea; expect pushback when warranted. <a href="/logout">Logout</a></span>
+    <button type="button" class="theme-toggle" id="spice-toggle" aria-label="Toggle spice mode" title="Switch between tuned (sharp without mean) and spicy (the original bastard)"></button>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
+  </header>
+  <div id="chat">
+    <div class="empty">Throw an idea at it. Tuned for sharp pushback when the framing has a flaw — and direct engagement when it doesn't. It is not Jeremy. It is a pattern of his moves.</div>
+  </div>
+  <p class="hint">Tip: it's specifically tuned for adversarial dialog. Direct factual recall ("what's project X?") is not its strength.</p>
+  <form id="input-row">
+    <textarea id="input" placeholder="Pitch an idea, propose a frame, claim something..." autofocus></textarea>
+    <button type="submit" id="send">Send</button>
+  </form>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    const send = document.getElementById('send');
+    const form = document.getElementById('input-row');
+    const themeToggle = document.getElementById('theme-toggle');
+    const spiceToggle = document.getElementById('spice-toggle');
+    const dialog = [];
+
+    // Theme toggle
+    function updateThemeButton() {
+      const t = document.documentElement.getAttribute('data-theme');
+      themeToggle.textContent = t === 'dark' ? '☀ Light' : '☾ Dark';
+    }
+    updateThemeButton();
+    themeToggle.addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme');
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('simulacrum_theme', next);
+      updateThemeButton();
+    });
+
+    // Spice toggle (tuned vs spicy/bastard mode)
+    function getSpice() {
+      const m = document.cookie.match(/(?:^|;\s*)simulacrum_spice=([^;]+)/);
+      return m ? m[1] : 'tuned';
+    }
+    function updateSpiceButton() {
+      const s = getSpice();
+      spiceToggle.textContent = s === 'spicy' ? '🌶 Spicy' : '🥛 Tuned';
+      spiceToggle.title = s === 'spicy'
+        ? 'Spicy mode: original bastard register. Click to switch to tuned (sharp without mean).'
+        : 'Tuned mode: sharp without being mean. Click to switch to spicy (the original).';
+    }
+    updateSpiceButton();
+    spiceToggle.addEventListener('click', async () => {
+      const cur = getSpice();
+      const next = cur === 'spicy' ? 'tuned' : 'spicy';
+      const fd = new FormData();
+      fd.append('spice', next);
+      const res = await fetch('/spice', { method: 'POST', body: fd, credentials: 'same-origin' });
+      if (res.ok) updateSpiceButton();
+    });
+
+    function render() {
+      if (dialog.length === 0) return;
+      chat.innerHTML = dialog.map(t => `
+        <div class="turn">
+          <div class="role ${t.role === 'user' ? 'user' : 'jeremy'}">${t.role === 'user' ? 'YOU' : 'JEREMY'}</div>
+          <div class="text">${escapeHtml(t.text)}</div>
+        </div>
+      `).join('');
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      dialog.push({ role: 'user', text });
+      input.value = '';
+      send.disabled = true;
+      send.textContent = '…';
+      render();
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            dialog: dialog.map(t => ({ role: t.role === 'user' ? 'Interlocutor' : 'Jeremy', text: t.text })),
+          }),
+        });
+        if (res.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        dialog.push({ role: 'jeremy', text: data.response });
+        render();
+      } catch (err) {
+        dialog.push({ role: 'jeremy', text: `<error: ${err.message}>` });
+        render();
+      } finally {
+        send.disabled = false; send.textContent = 'Send';
+        input.focus();
+      }
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        form.requestSubmit();
+      }
+    });
+  </script>
+</body>
+</html>

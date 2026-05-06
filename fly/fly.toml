@@ -1,0 +1,41 @@
+# fly.toml — Simulacrum deployment template
+#
+# Setup once:
+#   fly launch --no-deploy --copy-config
+#     (this will rename the app — pick something unique)
+#   fly secrets set ANTHROPIC_API_KEY=sk-ant-...
+#   fly secrets set OPENAI_API_KEY=sk-proj-...        # only if using the v7-bare generalist
+#   fly secrets set SIMULACRUM_TOKEN=$(openssl rand -hex 32)   # session HMAC key
+#   fly secrets set ALLOWED_USERNAME=your-username     # who can log in (case-insensitive)
+#   fly deploy
+#
+# Update:
+#   fly deploy
+
+app = "simulacrum-CHANGE-ME"
+primary_region = "iad"  # us-east; change to closer if needed
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"     # spin down when idle to save cost
+  auto_start_machines = true       # cold-start on next request
+  min_machines_running = 0
+  processes = ["app"]
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "get"
+  path = "/healthz"
+  timeout = "5s"
+
+[env]
+  SIMULACRUM_MODEL = "claude-sonnet-4-5"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"
