@@ -8,8 +8,11 @@ The /chat endpoint dispatches each turn between two agents:
                for adversarial framings, content generation, suggestions,
                critique, multi-turn continuation
 
-Auth: HMAC-signed session cookie. /login accepts ALLOWED_USERNAME
-(case-insensitive); no password (username is the gate).
+Open access (no login). Anti-abuse layered:
+  1. Cookie-based rolling-24h message counter (HMAC-signed, no server state).
+  2. Cloudflare Turnstile token verification (when TURNSTILE_SECRET is set).
+  3. (Recommended) Cloudflare edge in front: proxied DNS, Bot Fight Mode, per-IP rate-limit rule.
+  4. (Recommended) Provider-side daily budget cap on API keys.
 """
 
 from __future__ import annotations
@@ -22,8 +25,9 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Cookie, FastAPI, Form, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+import httpx
+from fastapi import Cookie, FastAPI, Form, Header, HTTPException
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -35,9 +39,13 @@ STATIC = ROOT / "static"
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 SECRET_KEY = os.environ.get("SIMULACRUM_TOKEN") or secrets.token_hex(32)
-ALLOWED_USERNAME = os.environ.get("ALLOWED_USERNAME", "admin").lower()
-SESSION_COOKIE = "simulacrum_session"
-SESSION_DURATION = 7 * 24 * 3600  # 1 week
+TURNSTILE_SECRET = os.environ.get("TURNSTILE_SECRET")
+TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "")
+
+COUNTER_COOKIE = "simulacrum_counter"
+SPICE_COOKIE = "simulacrum_spice"
+WINDOW_SECONDS = 24 * 3600
+CAP_PER_WINDOW = int(os.environ.get("CAP_PER_WINDOW", "20"))
 
 if not ANTHROPIC_API_KEY:
     raise RuntimeError("ANTHROPIC_API_KEY env var required (specialist + classifier)")
@@ -46,31 +54,52 @@ dispatcher = Dispatcher()
 print(f"dispatcher loaded — generalist={'enabled' if generalist_configured() else 'disabled (specialist-only)'}")
 
 
-# ---- Session token (HMAC-signed) ----
+# ---- Rolling-24h counter (HMAC-signed cookie, no server storage) ----
 
-def _make_session_token(username: str) -> str:
-    expires = int(time.time()) + SESSION_DURATION
-    payload = f"{username.lower()}|{expires}"
-    sig = hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
-    return f"{payload}|{sig}"
+def _sign(payload: str) -> str:
+    return hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
 
 
-def _verify_session_token(token: Optional[str]) -> bool:
+def _read_counter(cookie: Optional[str]) -> list[int]:
+    """Parse and verify the counter cookie. Returns a list of unix timestamps
+    within the last WINDOW_SECONDS. Returns [] if missing or invalid."""
+    if not cookie:
+        return []
+    try:
+        payload, sig = cookie.rsplit("|", 1)
+        if not hmac.compare_digest(sig, _sign(payload)):
+            return []
+        if not payload:
+            return []
+        timestamps = [int(x) for x in payload.split(",") if x]
+    except (ValueError, AttributeError):
+        return []
+    cutoff = int(time.time()) - WINDOW_SECONDS
+    return [t for t in timestamps if t >= cutoff]
+
+
+def _write_counter(timestamps: list[int]) -> str:
+    payload = ",".join(str(t) for t in timestamps[-CAP_PER_WINDOW:])
+    return f"{payload}|{_sign(payload)}"
+
+
+async def _verify_turnstile(token: Optional[str], remote_ip: Optional[str]) -> bool:
+    """Verify a Cloudflare Turnstile token. If TURNSTILE_SECRET is unset, skip
+    verification and return True (local-dev / no-Turnstile mode)."""
+    if not TURNSTILE_SECRET:
+        return True
     if not token:
         return False
+    data = {"secret": TURNSTILE_SECRET, "response": token}
+    if remote_ip:
+        data["remoteip"] = remote_ip
     try:
-        parts = token.split("|")
-        if len(parts) != 3:
-            return False
-        username, expires_str, sig = parts
-        if int(expires_str) < int(time.time()):
-            return False
-        if username != ALLOWED_USERNAME:
-            return False
-        expected = hmac.new(
-            SECRET_KEY.encode(), f"{username}|{expires_str}".encode(), hashlib.sha256
-        ).hexdigest()
-        return hmac.compare_digest(sig, expected)
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.post(
+                "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+                data=data,
+            )
+        return bool(r.json().get("success"))
     except Exception:
         return False
 
@@ -87,6 +116,7 @@ class DialogTurn(BaseModel):
 
 class ChatRequest(BaseModel):
     dialog: list[DialogTurn]
+    turnstile_token: Optional[str] = None
     temperature: float = 0.7
 
 
@@ -95,137 +125,68 @@ class ChatResponse(BaseModel):
     agent: str
     phase: str
     mode: Optional[str] = None
-    spice: Optional[str] = None
-
-
-def _require_auth(session: Optional[str]):
-    if not _verify_session_token(session):
-        raise HTTPException(status_code=401, detail="Login required")
-
-
-@app.get("/login", response_class=HTMLResponse)
-async def login_page(error: Optional[str] = None):
-    err_html = f'<p class="error">{error}</p>' if error else ""
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Simulacrum — Jeremy McEntire — Login</title>
-  <script>
-    (function() {{
-      var t = localStorage.getItem('simulacrum_theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', t);
-    }})();
-  </script>
-  <style>
-    :root[data-theme="dark"] {{
-      --bg: #1a1a1a; --surface: #222; --text: #e8e8e8; --subtle: #888;
-      --label: #aaa; --border: #333; --border-input: #444;
-      --accent: #ffb86c; --accent-text: #1a1a1a; --error: #ff6c6c;
-    }}
-    :root[data-theme="light"] {{
-      --bg: #fafafa; --surface: #ffffff; --text: #18181b; --subtle: #52525b;
-      --label: #3f3f46; --border: #e4e4e7; --border-input: #d4d4d8;
-      --accent: #c2410c; --accent-text: #ffffff; --error: #b91c1c;
-    }}
-    * {{ box-sizing: border-box; }}
-    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-           background: var(--bg); color: var(--text); margin: 0; min-height: 100vh;
-           display: flex; align-items: center; justify-content: center; padding: 16px; }}
-    .card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-            padding: 32px; width: 100%; max-width: 380px; position: relative; }}
-    h1 {{ margin: 0 0 8px; font-size: 18px; font-weight: 500; }}
-    .sub {{ color: var(--subtle); font-size: 13px; margin-bottom: 24px; }}
-    label {{ display: block; font-size: 12px; color: var(--label);
-            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }}
-    input {{ width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border-input);
-            border-radius: 4px; padding: 10px 12px; font: inherit; }}
-    button.submit {{ background: var(--accent); color: var(--accent-text); border: 0; border-radius: 4px;
-             padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer;
-             margin-top: 16px; width: 100%; }}
-    .error {{ color: var(--error); font-size: 13px; margin: 8px 0 16px; }}
-    .theme-toggle {{ position: absolute; top: 12px; right: 12px;
-                    background: transparent; color: var(--subtle); border: 1px solid var(--border-input);
-                    border-radius: 4px; padding: 4px 10px; font: inherit; font-size: 12px;
-                    cursor: pointer; }}
-    .theme-toggle:hover {{ color: var(--text); border-color: var(--text); }}
-  </style>
-</head>
-<body>
-  <form class="card" method="POST" action="/login">
-    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
-    <h1>Simulacrum — Jeremy McEntire</h1>
-    <p class="sub">Pitch an idea; expect pushback when warranted.</p>
-    {err_html}
-    <label for="username">Username</label>
-    <input type="text" id="username" name="username" autocomplete="username" autofocus required />
-    <button class="submit" type="submit">Continue</button>
-  </form>
-  <script>
-    const themeToggle = document.getElementById('theme-toggle');
-    function updateThemeButton() {{
-      const t = document.documentElement.getAttribute('data-theme');
-      themeToggle.textContent = t === 'dark' ? '☀ Light' : '☾ Dark';
-    }}
-    updateThemeButton();
-    themeToggle.addEventListener('click', () => {{
-      const cur = document.documentElement.getAttribute('data-theme');
-      const next = cur === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('simulacrum_theme', next);
-      updateThemeButton();
-    }});
-  </script>
-</body>
-</html>"""
-
-
-@app.post("/login")
-async def login_submit(username: str = Form(...)):
-    if username.strip().lower() != ALLOWED_USERNAME:
-        return RedirectResponse(url="/login?error=Invalid+username", status_code=303)
-    token = _make_session_token(ALLOWED_USERNAME)
-    resp = RedirectResponse(url="/", status_code=303)
-    resp.set_cookie(
-        SESSION_COOKIE, token,
-        max_age=SESSION_DURATION, httponly=True, samesite="lax", secure=True,
-    )
-    return resp
-
-
-@app.get("/logout")
-async def logout():
-    resp = RedirectResponse(url="/login", status_code=303)
-    resp.delete_cookie(SESSION_COOKIE)
-    return resp
+    remaining: int
 
 
 @app.get("/")
-async def index(simulacrum_session: Optional[str] = Cookie(None)):
-    if not _verify_session_token(simulacrum_session):
-        return RedirectResponse(url="/login", status_code=303)
+async def index():
     return FileResponse(STATIC / "index.html")
 
 
-@app.post("/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest,
-               simulacrum_session: Optional[str] = Cookie(None),
-               simulacrum_spice: Optional[str] = Cookie(None)) -> ChatResponse:
-    _require_auth(simulacrum_session)
+@app.get("/privacy")
+async def privacy():
+    return FileResponse(STATIC / "privacy.html")
 
+
+@app.get("/terms")
+async def terms():
+    return FileResponse(STATIC / "terms.html")
+
+
+@app.post("/chat")
+async def chat(req: ChatRequest,
+               simulacrum_counter: Optional[str] = Cookie(None),
+               simulacrum_spice: Optional[str] = Cookie(None),
+               cf_connecting_ip: Optional[str] = Header(None, alias="CF-Connecting-IP")) -> JSONResponse:
     if not req.dialog:
         raise HTTPException(status_code=400, detail="empty dialog")
+
+    timestamps = _read_counter(simulacrum_counter)
+    if len(timestamps) >= CAP_PER_WINDOW:
+        oldest = min(timestamps)
+        reset_in = max(0, WINDOW_SECONDS - (int(time.time()) - oldest))
+        raise HTTPException(
+            status_code=429,
+            detail=f"Daily message cap reached ({CAP_PER_WINDOW}). Try again in {reset_in // 3600}h {(reset_in % 3600) // 60}m.",
+        )
+
+    if not await _verify_turnstile(req.turnstile_token, cf_connecting_ip):
+        raise HTTPException(status_code=403, detail="Bot check failed. Refresh and try again.")
 
     spice = "spicy" if simulacrum_spice == "spicy" else "tuned"
     dialogue = [(t.role, t.text) for t in req.dialog]
     out = dispatcher.utterance(dialogue, spice=spice)
-    return ChatResponse(
+
+    timestamps.append(int(time.time()))
+    remaining = max(0, CAP_PER_WINDOW - len(timestamps))
+
+    resp = JSONResponse(ChatResponse(
         response=out["text"],
         agent=out["agent"],
         phase=out["phase"],
         mode=out.get("mode"),
+        remaining=remaining,
+    ).model_dump())
+    resp.set_cookie(
+        COUNTER_COOKIE, _write_counter(timestamps),
+        max_age=WINDOW_SECONDS, httponly=True, samesite="lax", secure=True,
     )
+    return resp
+
+
+@app.get("/config")
+async def config():
+    return {"turnstile_site_key": TURNSTILE_SITE_KEY, "cap_per_window": CAP_PER_WINDOW}
 
 
 @app.get("/healthz")
@@ -239,14 +200,12 @@ async def healthz():
 
 
 @app.post("/spice")
-async def set_spice(spice: str = Form(...),
-                    simulacrum_session: Optional[str] = Cookie(None)):
-    _require_auth(simulacrum_session)
+async def set_spice(spice: str = Form(...)):
     if spice not in ("tuned", "spicy"):
         raise HTTPException(status_code=400, detail="spice must be 'tuned' or 'spicy'")
     resp = JSONResponse({"spice": spice})
     resp.set_cookie(
-        "simulacrum_spice", spice,
+        SPICE_COOKIE, spice,
         max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=True,
     )
     return resp

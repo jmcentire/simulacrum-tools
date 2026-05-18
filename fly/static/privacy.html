@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Privacy — Simulacrum</title>
+  <script>
+    (function() {
+      var t = localStorage.getItem('simulacrum_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  <style>
+    :root[data-theme="dark"] {
+      --bg: #1a1a1a; --surface: #222; --text: #e8e8e8; --subtle: #888;
+      --border: #333; --accent: #ffb86c; --link: #6cb5ff;
+    }
+    :root[data-theme="light"] {
+      --bg: #fafafa; --surface: #ffffff; --text: #18181b; --subtle: #52525b;
+      --border: #e4e4e7; --accent: #c2410c; --link: #1d4ed8;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: var(--bg); color: var(--text); margin: 0; padding: 0;
+           line-height: 1.6; }
+    main { max-width: 720px; margin: 40px auto; padding: 0 24px; }
+    h1 { font-size: 24px; font-weight: 500; margin: 0 0 8px; }
+    h2 { font-size: 16px; font-weight: 600; margin: 32px 0 8px; color: var(--accent); }
+    .sub { color: var(--subtle); font-size: 13px; margin-bottom: 32px; }
+    p, ul { font-size: 15px; }
+    a { color: var(--link); }
+    .back { display: inline-block; margin-bottom: 16px; color: var(--subtle); text-decoration: none; font-size: 13px; }
+    .back:hover { color: var(--text); }
+    code { background: var(--surface); padding: 2px 6px; border-radius: 3px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="/">← Back</a>
+    <h1>Privacy</h1>
+    <p class="sub">Last updated 2026-05-17</p>
+
+    <h2>What this service collects</h2>
+    <p>Nothing about you, personally. The service sets two cookies:</p>
+    <ul>
+      <li><code>simulacrum_counter</code> — an HMAC-signed list of timestamps for your recent chat requests, used to enforce a per-browser 20-message rolling 24-hour cap. Contains only timestamps, no identity, no content.</li>
+      <li><code>simulacrum_spice</code> — your UI preference for the response register (tuned or spicy).</li>
+    </ul>
+    <p>No account, no email, no IP logged server-side, no chat history persisted to a database. The server is stateless beyond what the signed cookies carry.</p>
+
+    <h2>Third parties that see your requests</h2>
+    <ul>
+      <li><strong>Cloudflare</strong> sits at the edge and sees your IP for rate-limiting, Bot Fight Mode, and invisible Turnstile bot-check. Cloudflare's own privacy policy applies.</li>
+      <li><strong>Anthropic</strong> and <strong>OpenAI</strong> receive the dialog text you send so they can generate a response. Their privacy policies apply.</li>
+    </ul>
+
+    <h2>Retention</h2>
+    <p>The <code>simulacrum_counter</code> cookie expires after 24 hours. Nothing is stored on the server. Anthropic and OpenAI may log requests per their own policies.</p>
+
+    <h2>Your choices</h2>
+    <p>Clear your cookies and you've erased what we'd have. Don't use the service if you don't want your messages sent to Anthropic / OpenAI for inference.</p>
+
+    <h2>Contact</h2>
+    <p>Questions: <a href="mailto:j.andrew.mcentire@gmail.com">j.andrew.mcentire@gmail.com</a></p>
+  </main>
+</body>
+</html>

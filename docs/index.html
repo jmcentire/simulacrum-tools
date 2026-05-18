@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simulacrum — A cognitive simulacrum of Jeremy McEntire</title>
+  <meta name="description" content="A generative cognitive simulacrum architected on Park et al. (2024). Two-phase classifier dispatch, annotated few-shot, open-source, MIT-licensed." />
+  <meta property="og:title" content="Simulacrum" />
+  <meta property="og:description" content="A cognitive simulacrum that thinks in Jeremy McEntire's patterns." />
+  <meta property="og:url" content="https://jmcentire.github.io/simulacrum" />
+  <meta property="og:type" content="website" />
+  <link rel="canonical" href="https://jmcentire.github.io/simulacrum" />
+  <style>
+    :root {
+      --bg: #1a1a1a; --surface: #222; --text: #e8e8e8; --subtle: #888;
+      --border: #333; --accent: #ffb86c; --link: #6cb5ff;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #fafafa; --surface: #ffffff; --text: #18181b; --subtle: #52525b;
+        --border: #e4e4e7; --accent: #c2410c; --link: #1d4ed8;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.6; }
+    main { max-width: 760px; margin: 0 auto; padding: 48px 24px 64px; }
+    header { margin-bottom: 32px; }
+    h1 { font-size: 32px; font-weight: 500; margin: 0 0 8px; }
+    .tagline { color: var(--subtle); font-size: 16px; margin: 0; }
+    h2 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; color: var(--accent); }
+    p, ul, ol { font-size: 15px; }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: var(--surface); padding: 2px 6px; border-radius: 3px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    pre { background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+          padding: 14px 16px; overflow-x: auto; font-size: 13px; line-height: 1.4;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .cta { display: inline-block; background: var(--accent); color: var(--bg); padding: 10px 20px;
+           border-radius: 4px; font-weight: 600; margin-right: 8px; margin-top: 16px; }
+    .cta:hover { text-decoration: none; opacity: 0.9; }
+    .cta.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    blockquote { margin: 16px 0; padding: 12px 16px; border-left: 3px solid var(--accent);
+                 background: var(--surface); color: var(--subtle); font-style: italic; }
+    footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border);
+             color: var(--subtle); font-size: 13px; text-align: center; }
+    footer a { color: var(--subtle); margin: 0 8px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Simulacrum</h1>
+      <p class="tagline">A cognitive simulacrum of <a href="https://perardua.dev">Jeremy McEntire</a>.</p>
+    </header>
+
+    <blockquote>A simulacrum is a model of someone's <em>cognitive moves</em> — the specific patterns of thought they apply to novel situations. It is NOT a style-transfer of their writing voice. The two get conflated; they are not the same problem.</blockquote>
+
+    <a class="cta" href="https://simulacrum.tools">Try it live →</a>
+    <a class="cta secondary" href="https://github.com/jmcentire/simulacrum">Source on GitHub</a>
+
+    <h2>What it is</h2>
+    <p>An open-source generative agent system that mimics how one specific person reasons — not how they write. It engages with arguments the way Jeremy does: interrogates load-bearing assumptions, demands operationalized criteria, refuses well-shaped questions only when the shape is genuinely malformed, demolishes the framing when it isn't.</p>
+    <p>Built on the two-phase classifier-dispatch architecture from Park et al.'s 2024 paper, <em><a href="https://arxiv.org/abs/2411.10109">Generative Agent Simulations of 1,000 People</a></em>, with a recall-vs-content split that routes each turn to the agent best suited to it.</p>
+
+    <h2>How it works</h2>
+    <ol>
+      <li><strong>Classifier</strong> — a fast Anthropic Sonnet call labels each turn as <code>GENERALIST</code> (autobiographical recall) or <code>SPECIALIST</code> (opinion, drafting, critique, adversarial framing, multi-turn dialog).</li>
+      <li><strong>Dispatch:</strong>
+        <ul>
+          <li><code>GENERALIST</code> → OpenAI fine-tune on Jeremy's prior writing (optional; recall accelerator).</li>
+          <li><code>SPECIALIST</code> → Anthropic Sonnet + 11 hand-annotated few-shot pairs + a Mode-A operationalized-criterion sub-classifier.</li>
+        </ul>
+      </li>
+    </ol>
+    <p>The system prompt carries two load-bearing meta-rules: <strong>assumption-interrogation</strong> (before applying conventional advice, identify the assumption it depends on and check whether it holds) and <strong>architecture-review posture</strong> (when reviewing existing systems, identify the constraint envelope first; demand it if missing; don't alternative-shop).</p>
+
+    <h2>Build your own</h2>
+    <p>The repo is configured as Jeremy's simulacrum, but the pattern transfers. See <a href="https://github.com/jmcentire/simulacrum/blob/main/PRIMER.md">PRIMER.md</a> for a step-by-step recipe distilled from eight architectural iterations: what works (annotated few-shot, two-phase dispatch), what doesn't (graph retrieval, multi-substrate ensembles, behavior dispatchers), and the order of operations that avoids the dead ends.</p>
+
+    <h2>Quick start (local CLI)</h2>
+    <pre>git clone https://github.com/jmcentire/simulacrum.git
+cd simulacrum/skill
+ln -s ../fly/data/adversarial_pairs_annotated.json .
+pip install anthropic openai
+export ANTHROPIC_API_KEY=sk-ant-...
+./run.py "Every team needs a strong manager."</pre>
+
+    <h2>Quick start (Fly deployment)</h2>
+    <pre>cd simulacrum/fly
+fly launch --no-deploy --copy-config       # rename the app
+fly secrets set ANTHROPIC_API_KEY=sk-ant-...
+fly secrets set SIMULACRUM_TOKEN=$(openssl rand -hex 32)
+fly deploy</pre>
+
+    <h2>Anti-abuse posture</h2>
+    <p>The deployment is open (no login). Defenses are layered:</p>
+    <ol>
+      <li>Cookie-based 20-message rolling 24h cap — HMAC-signed, no server state.</li>
+      <li>Cloudflare Turnstile invisible bot-check (optional; activated when <code>TURNSTILE_SECRET</code> is set).</li>
+      <li>Cloudflare edge in front: Bot Fight Mode, per-IP rate limiting.</li>
+      <li>Provider-side daily budget cap on your API key.</li>
+    </ol>
+
+    <h2>References</h2>
+    <ul>
+      <li>Park et al. 2024, <em><a href="https://arxiv.org/abs/2411.10109">Generative Agent Simulations of 1,000 People</a></em></li>
+      <li>Park et al. 2023, <em><a href="https://arxiv.org/abs/2304.03442">Generative Agents: Interactive Simulacra of Human Behavior</a></em></li>
+      <li>Stanford <a href="https://github.com/joonspk-research/generative_agents">generative-agents</a> repository</li>
+    </ul>
+
+    <footer>
+      <a href="https://github.com/jmcentire/simulacrum">Source</a> ·
+      <a href="https://simulacrum.tools">Live demo</a> ·
+      <a href="https://perardua.dev">Author</a> ·
+      MIT
+    </footer>
+  </main>
+</body>
+</html>

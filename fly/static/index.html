@@ -67,26 +67,52 @@
     button { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 4px;
              padding: 0 24px; font: inherit; font-weight: 600; cursor: pointer; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .empty { color: var(--empty); font-style: italic; text-align: center; margin-top: 40px; }
+    .empty { color: var(--text); text-align: center; margin: 60px auto 0; max-width: 560px; }
+    .empty h2 { font-size: 22px; font-weight: 500; margin: 0 0 16px; }
+    .empty p { font-size: 14px; color: var(--subtle); line-height: 1.6; margin: 0 0 12px; }
+    .empty .links { margin-top: 20px; font-size: 13px; }
+    .empty .links a { color: var(--user-role); text-decoration: none; margin: 0 8px; }
+    .empty .links a:hover { text-decoration: underline; }
     .hint { font-size: 12px; color: var(--subtle); margin-top: 8px; max-width: 880px;
-            margin-left: auto; margin-right: auto; padding: 0 24px 16px; }
+            margin-left: auto; margin-right: auto; padding: 0 24px 8px; }
+    footer { font-size: 12px; color: var(--subtle); text-align: center; padding: 8px 24px 16px;
+             border-top: 1px solid var(--border); background: var(--surface); }
+    footer a { color: var(--subtle); margin: 0 8px; text-decoration: none; }
+    footer a:hover { color: var(--text); }
   </style>
 </head>
 <body>
   <header>
     <h1>Simulacrum — Jeremy McEntire</h1>
-    <span class="meta">Pitch an idea; expect pushback when warranted. <a href="/logout">Logout</a></span>
+    <span class="meta">Pitch an idea; expect pushback when warranted. This is a simulacrum, not the person it imitates. Outputs are not professional advice.</span>
     <button type="button" class="theme-toggle" id="spice-toggle" aria-label="Toggle spice mode" title="Switch between tuned (sharp without mean) and spicy (the original bastard)"></button>
     <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
   </header>
   <div id="chat">
-    <div class="empty">Throw an idea at it. Tuned for sharp pushback when the framing has a flaw — and direct engagement when it doesn't. It is not Jeremy. It is a pattern of his moves.</div>
+    <div class="empty">
+      <h2>A generative simulacrum.</h2>
+      <p>Built on the architecture from Park et al.'s <em>Generative Agent Simulations of 1,000 People</em> (2024) — a two-phase dispatcher routes each turn between a recall branch and an adversarial-dialog branch.</p>
+      <p>Pitch an idea, propose a frame, claim something. Tuned for sharp pushback when the framing has a flaw — and direct engagement when it doesn't.</p>
+      <div class="links">
+        <a href="https://arxiv.org/abs/2411.10109" target="_blank" rel="noopener">Paper</a> ·
+        <a href="https://github.com/jmcentire/simulacrum" target="_blank" rel="noopener">Code</a> ·
+        <a href="/privacy">Privacy</a> ·
+        <a href="/terms">Terms</a>
+      </div>
+    </div>
   </div>
   <p class="hint">Tip: it's specifically tuned for adversarial dialog. Direct factual recall ("what's project X?") is not its strength.</p>
   <form id="input-row">
     <textarea id="input" placeholder="Pitch an idea, propose a frame, claim something..." autofocus></textarea>
     <button type="submit" id="send">Send</button>
   </form>
+  <footer>
+    <a href="https://arxiv.org/abs/2411.10109" target="_blank" rel="noopener">Paper</a> ·
+    <a href="https://github.com/jmcentire/simulacrum" target="_blank" rel="noopener">Code</a> ·
+    <a href="/privacy">Privacy</a> ·
+    <a href="/terms">Terms</a>
+  </footer>
+  <div id="turnstile-host" style="display:none"></div>
 
   <script>
     const chat = document.getElementById('chat');
@@ -96,6 +122,38 @@
     const themeToggle = document.getElementById('theme-toggle');
     const spiceToggle = document.getElementById('spice-toggle');
     const dialog = [];
+    let turnstileWidgetId = null;
+    let turnstileSiteKey = null;
+
+    async function loadConfig() {
+      try {
+        const r = await fetch('/config');
+        const c = await r.json();
+        turnstileSiteKey = c.turnstile_site_key || null;
+        if (turnstileSiteKey) {
+          const s = document.createElement('script');
+          s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit';
+          s.async = true; s.defer = true;
+          document.head.appendChild(s);
+        }
+      } catch (e) { /* no-op: serve without Turnstile */ }
+    }
+    window.onTurnstileLoad = function() {
+      const host = document.getElementById('turnstile-host');
+      turnstileWidgetId = turnstile.render(host, {
+        sitekey: turnstileSiteKey,
+        size: 'invisible',
+      });
+    };
+    async function getTurnstileToken() {
+      if (!turnstileSiteKey || turnstileWidgetId === null) return null;
+      return new Promise((resolve) => {
+        turnstile.execute(turnstileWidgetId, {
+          callback: (token) => resolve(token),
+        });
+      });
+    }
+    loadConfig();
 
     // Theme toggle
     function updateThemeButton() {
@@ -158,16 +216,20 @@
       send.textContent = '…';
       render();
       try {
+        const turnstileToken = await getTurnstileToken();
         const res = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
           body: JSON.stringify({
             dialog: dialog.map(t => ({ role: t.role === 'user' ? 'Interlocutor' : 'Jeremy', text: t.text })),
+            turnstile_token: turnstileToken,
           }),
         });
-        if (res.status === 401) {
-          window.location.href = '/login';
+        if (res.status === 429 || res.status === 403) {
+          const data = await res.json().catch(() => ({}));
+          dialog.push({ role: 'jeremy', text: data.detail || 'Request blocked.' });
+          render();
           return;
         }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

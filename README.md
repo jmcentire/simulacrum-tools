@@ -4,9 +4,12 @@ A cognitive simulacrum of [Jeremy McEntire](https://perardua.dev) — an AI agen
 
 > A simulacrum is a model of someone's *cognitive moves* — the specific patterns of thought they apply to novel situations. It is NOT a style-transfer of their writing voice. The two get conflated; they are not the same problem.
 
+**Live demo:** [simulacrum.tools](https://simulacrum.tools)
+**Docs:** [jmcentire.github.io/simulacrum](https://jmcentire.github.io/simulacrum)
+
 ## What this repo contains
 
-- **`fly/`** — a deployable FastAPI service. Run it on Fly.io (or anywhere that runs Python) and chat with the simulacrum through a web UI. HMAC-cookie auth, light/dark theme, "tuned" vs "spicy" register toggle, two-phase classifier dispatch.
+- **`fly/`** — a deployable FastAPI service. Run it on Fly.io (or anywhere that runs Python) and chat with the simulacrum through a web UI. Open access with cookie-based rate limiting, optional Cloudflare Turnstile invisible bot-check, light/dark theme, "tuned" vs "spicy" register toggle, two-phase classifier dispatch.
 - **`skill/`** — a local CLI wrapper (`run.py`) that wraps the same logic for command-line / pipe-into / agent-tool use. Designed to drop into [Claude Code skills](https://docs.claude.com/en/docs/claude-code/skills).
 - **`PRIMER.md`** — recipe for building a simulacrum like this for a different subject. Worked-through advice from 8 architectural iterations, including what works (annotated few-shot, two-phase dispatch) and what doesn't (graph retrieval, multi-substrate ensembles, behavior dispatchers).
 
@@ -22,6 +25,15 @@ Two-phase dispatch:
 The system prompt also carries two load-bearing meta-rules: **assumption-interrogation** (before applying conventional advice, identify the assumption it depends on and check whether it holds in this context) and **architecture-review posture** (when reviewing existing systems, identify the constraint envelope first; demand it if missing; don't alternative-shop).
 
 The specialist alone (no fine-tune) handles the bulk of useful conversations. The generalist branch is purely a recall accelerator for autobiographical questions.
+
+## Anti-abuse posture
+
+The deployment is open (no login). Defenses are layered:
+
+1. **Cookie-based 20-message rolling 24h cap** — HMAC-signed cookie carries timestamps; server reads/updates per request; no server-side state. Cleared cookies just bump the user to the next layer.
+2. **Cloudflare Turnstile (invisible)** — server-side token verification on every `/chat` call. Activated by setting `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET` env vars; skipped silently if unset (local dev).
+3. **Cloudflare edge** (recommended in front) — Bot Fight Mode, per-IP rate limiting, DDoS absorption.
+4. **Provider-side budget cap** — set a daily spend cap on your Anthropic key in the Anthropic console. The ultimate floor.
 
 ## Quick start (local CLI)
 
@@ -40,12 +52,17 @@ export ANTHROPIC_API_KEY=sk-ant-...
 cd simulacrum/fly
 fly launch --no-deploy --copy-config        # rename the app — pick something unique
 fly secrets set ANTHROPIC_API_KEY=sk-ant-...
-fly secrets set ALLOWED_USERNAME=your-username
 fly secrets set SIMULACRUM_TOKEN=$(openssl rand -hex 32)
+# Optional — enable invisible Turnstile bot-check:
+fly secrets set TURNSTILE_SITE_KEY=0x4...
+fly secrets set TURNSTILE_SECRET=0x4...
+# Optional — enable the fine-tuned generalist branch:
+fly secrets set OPENAI_API_KEY=sk-...
+fly secrets set GENERALIST_MODEL=ft:gpt-4o-mini-...
 fly deploy
 ```
 
-Visit `https://<your-app>.fly.dev/`, log in with the username you configured, chat.
+Visit `https://<your-app>.fly.dev/`, chat. Per-browser cap is 20 messages per rolling 24 hours.
 
 ## Customizing for a different subject
 
@@ -69,6 +86,7 @@ MIT. See `LICENSE`.
 
 ## Acknowledgments
 
-- Stanford's [generative-agents](https://github.com/joonspk-research/generative_agents) (Park et al. 2023) — the starting architecture, since outgrown but credit where due.
+- Park et al. 2024, [*Generative Agent Simulations of 1,000 People*](https://arxiv.org/abs/2411.10109) — the architecture this implementation is closest to.
+- Park et al. 2023, [*Generative Agents: Interactive Simulacra of Human Behavior*](https://arxiv.org/abs/2304.03442) — the prior Smallville paper; the conceptual foundation.
 - Anthropic's claude-sonnet-4-5 — the substrate that made the annotated-few-shot approach work.
 - The conversation with Claude (Anthropic) that built this iteration. The 11 canonical pairs are the artifact of that work.
