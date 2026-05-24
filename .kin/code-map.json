@@ -1,0 +1,314 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "simulacrum-public",
+    "description": "Code map exported from Kindex for simulacrum-public.",
+    "languages": [
+      "Python"
+    ],
+    "frameworks": [],
+    "analyzedAt": "2026-05-24T15:05:17",
+    "gitCommitHash": "5ece98b9f52c45efd673c6ea54eb2e99ef34ed7c"
+  },
+  "nodes": [
+    {
+      "id": "code-mod-simulacrum-public-2ea21d56423c",
+      "type": "file",
+      "name": "fly/app.py",
+      "filePath": "fly/app.py",
+      "summary": "Language: Python | Path: fly/app.py | ~203 lines ## Classes - ChatRequest(BaseModel)",
+      "tags": [
+        "code",
+        "python"
+      ],
+      "complexity": 14,
+      "languageNotes": {
+        "language": "Python",
+        "kindexType": "artifact",
+        "toolTier": "C"
+      }
+    },
+    {
+      "id": "code-mod-simulacrum-public-9f6d94f42b9f",
+      "type": "file",
+      "name": "fly/agents/dispatcher.py",
+      "filePath": "fly/agents/dispatcher.py",
+      "summary": "Language: Python | Path: fly/agents/dispatcher.py | ~79 lines ## Classes - Dispatcher",
+      "tags": [
+        "code",
+        "python"
+      ],
+      "complexity": 1,
+      "languageNotes": {
+        "language": "Python",
+        "kindexType": "artifact",
+        "toolTier": "C"
+      }
+    },
+    {
+      "id": "code-mod-simulacrum-public-f6725ff8068d",
+      "type": "file",
+      "name": "skill/run.py",
+      "filePath": "skill/run.py",
+      "summary": "Language: Python | Path: skill/run.py | ~356 lines ## Functions - call_simulacrum(question, history, temperature=0.7) -> dict",
+      "tags": [
+        "code",
+        "python"
+      ],
+      "complexity": 11,
+      "languageNotes": {
+        "language": "Python",
+        "kindexType": "artifact",
+        "toolTier": "C"
+      }
+    },
+    {
+      "id": "code-mod-simulacrum-public-11d3e62110ab",
+      "type": "file",
+      "name": "fly/agents/specialist.py",
+      "filePath": "fly/agents/specialist.py",
+      "summary": "Language: Python | Path: fly/agents/specialist.py | ~192 lines ## Classes - SpecialistAgent",
+      "tags": [
+        "code",
+        "python"
+      ],
+      "complexity": 4,
+      "languageNotes": {
+        "language": "Python",
+        "kindexType": "artifact",
+        "toolTier": "C"
+      }
+    },
+    {
+      "id": "code-mod-simulacrum-public-b1703f8f77c4",
+      "type": "file",
+      "name": "fly/agents/generalist.py",
+      "filePath": "fly/agents/generalist.py",
+      "summary": "Language: Python | Path: fly/agents/generalist.py | ~87 lines ## Classes - GeneralistAgent",
+      "tags": [
+        "code",
+        "python"
+      ],
+      "complexity": 2,
+      "languageNotes": {
+        "language": "Python",
+        "kindexType": "artifact",
+        "toolTier": "C"
+      }
+    },
+    {
+      "id": "code-sym-simulacrum-public-e84b3adab0b4",
+      "type": "class",
+      "name": "GeneralistAgent",
+      "filePath": "fly/agents/generalist.py",
+      "summary": "class GeneralistAgent (fly/agents/generalist.py:77) ## Methods - utterance(self, dialogue: list[tuple[str, str]], temperature: float = 0.7) -> str",
+      "tags": [
+        "code",
+        "python"
+      ],
+      "complexity": 1,
+      "languageNotes": {
+        "language": "Python",
+        "kindexType": "concept",
+        "toolTier": ""
+      }
+    },
+    {
+      "id": "code-sym-simulacrum-public-8d65d93b7c5f",
+      "type": "class",
+      "name": "SpecialistAgent",
+      "filePath": "fly/agents/specialist.py",
+      "summary": "class SpecialistAgent (fly/agents/specialist.py:164) ## Methods - utterance(self, dialogue: list[tuple[str, str]], temperature: float = 0.7, spice: str = \"tuned\") -> dict",
+      "tags": [
+        "code",
+        "python"
+      ],
+      "complexity": 1,
+      "languageNotes": {
+        "language": "Python",
+        "kindexType": "concept",
+        "toolTier": ""
+      }
+    },
+    {
+      "id": "code-sym-simulacrum-public-3f352530c2ae",
+      "type": "class",
+      "name": "ChatResponse",
+      "filePath": "fly/app.py",
+      "summary": "class ChatResponse(BaseModel) (fly/app.py:123)",
+      "tags": [
+        "code",
+        "python"
+      ],
+      "complexity": 1,
+      "languageNotes": {
+        "language": "Python",
+        "kindexType": "concept",
+        "toolTier": ""
+      }
+    },
+    {
+      "id": "code-sym-simulacrum-public-d0083b30e795",
+      "type": "class",
+      "name": "DialogTurn",
+      "filePath": "fly/app.py",
+      "summary": "class DialogTurn(BaseModel) (fly/app.py:112)",
+      "tags": [
+        "code",
+        "python"
+      ],
+      "complexity": 1,
+      "languageNotes": {
+        "language": "Python",
+        "kindexType": "concept",
+        "toolTier": ""
+      }
+    },
+    {
+      "id": "code-sym-simulacrum-public-5967b0379cd3",
+      "type": "class",
+      "name": "Dispatcher",
+      "filePath": "fly/agents/dispatcher.py",
+      "summary": "class Dispatcher (fly/agents/dispatcher.py:53) ## Methods - utterance(self, dialogue: list[tuple[str, str]], spice: str = \"tuned\") -> dict",
+      "tags": [
+        "code",
+        "python"
+      ],
+      "complexity": 1,
+      "languageNotes": {
+        "language": "Python",
+        "kindexType": "concept",
+        "toolTier": ""
+      }
+    },
+    {
+      "id": "code-sym-simulacrum-public-f769243da100",
+      "type": "class",
+      "name": "ChatRequest",
+      "filePath": "fly/app.py",
+      "summary": "class ChatRequest(BaseModel) (fly/app.py:117)",
+      "tags": [
+        "code",
+        "python"
+      ],
+      "complexity": 1,
+      "languageNotes": {
+        "language": "Python",
+        "kindexType": "concept",
+        "toolTier": ""
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "code-sym-simulacrum-public-e84b3adab0b4",
+      "target": "code-mod-simulacrum-public-b1703f8f77c4",
+      "type": "contains",
+      "direction": "outbound",
+      "weight": 0.6
+    },
+    {
+      "source": "code-sym-simulacrum-public-8d65d93b7c5f",
+      "target": "code-mod-simulacrum-public-11d3e62110ab",
+      "type": "contains",
+      "direction": "outbound",
+      "weight": 0.6
+    },
+    {
+      "source": "code-sym-simulacrum-public-3f352530c2ae",
+      "target": "code-mod-simulacrum-public-2ea21d56423c",
+      "type": "contains",
+      "direction": "outbound",
+      "weight": 0.6
+    },
+    {
+      "source": "code-sym-simulacrum-public-d0083b30e795",
+      "target": "code-mod-simulacrum-public-2ea21d56423c",
+      "type": "contains",
+      "direction": "outbound",
+      "weight": 0.6
+    },
+    {
+      "source": "code-sym-simulacrum-public-5967b0379cd3",
+      "target": "code-mod-simulacrum-public-9f6d94f42b9f",
+      "type": "contains",
+      "direction": "outbound",
+      "weight": 0.6
+    },
+    {
+      "source": "code-sym-simulacrum-public-f769243da100",
+      "target": "code-mod-simulacrum-public-2ea21d56423c",
+      "type": "contains",
+      "direction": "outbound",
+      "weight": 0.6
+    }
+  ],
+  "layers": [
+    {
+      "id": "core",
+      "name": "Core",
+      "description": "Kindex-inferred core layer.",
+      "nodeIds": [
+        "code-mod-simulacrum-public-2ea21d56423c",
+        "code-mod-simulacrum-public-9f6d94f42b9f",
+        "code-mod-simulacrum-public-b1703f8f77c4",
+        "code-mod-simulacrum-public-f6725ff8068d"
+      ]
+    },
+    {
+      "id": "domain",
+      "name": "Domain",
+      "description": "Kindex-inferred domain layer.",
+      "nodeIds": [
+        "code-sym-simulacrum-public-3f352530c2ae",
+        "code-sym-simulacrum-public-5967b0379cd3",
+        "code-sym-simulacrum-public-8d65d93b7c5f",
+        "code-sym-simulacrum-public-d0083b30e795",
+        "code-sym-simulacrum-public-e84b3adab0b4",
+        "code-sym-simulacrum-public-f769243da100"
+      ]
+    },
+    {
+      "id": "test",
+      "name": "Test",
+      "description": "Kindex-inferred test layer.",
+      "nodeIds": [
+        "code-mod-simulacrum-public-11d3e62110ab"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Core",
+      "description": "Review 4 node(s) in the Core layer.",
+      "nodeIds": [
+        "code-mod-simulacrum-public-2ea21d56423c",
+        "code-mod-simulacrum-public-9f6d94f42b9f",
+        "code-mod-simulacrum-public-b1703f8f77c4",
+        "code-mod-simulacrum-public-f6725ff8068d"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Domain",
+      "description": "Review 6 node(s) in the Domain layer.",
+      "nodeIds": [
+        "code-sym-simulacrum-public-3f352530c2ae",
+        "code-sym-simulacrum-public-5967b0379cd3",
+        "code-sym-simulacrum-public-8d65d93b7c5f",
+        "code-sym-simulacrum-public-d0083b30e795",
+        "code-sym-simulacrum-public-e84b3adab0b4",
+        "code-sym-simulacrum-public-f769243da100"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Test",
+      "description": "Review 1 node(s) in the Test layer.",
+      "nodeIds": [
+        "code-mod-simulacrum-public-11d3e62110ab"
+      ]
+    }
+  ]
+}
