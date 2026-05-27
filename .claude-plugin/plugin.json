@@ -1,0 +1,20 @@
+{
+  "name": "simulacrum",
+  "displayName": "Simulacrum",
+  "version": "1.0.0",
+  "description": "Jeremy McEntire-style adversarial advice and architecture pushback for Claude Code.",
+  "author": {
+    "name": "Jeremy McEntire",
+    "url": "https://perardua.dev"
+  },
+  "homepage": "https://simulacrum.tools",
+  "repository": "https://github.com/jmcentire/simulacrum",
+  "license": "MIT",
+  "keywords": [
+    "architecture",
+    "critique",
+    "pushback",
+    "skills",
+    "simulacrum"
+  ]
+}

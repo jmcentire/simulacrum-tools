@@ -86,6 +86,11 @@ pip install anthropic openai
 export ANTHROPIC_API_KEY=sk-ant-...
 ./run.py "Every team needs a strong manager."</pre>
 
+    <h2>Quick start (Claude Code plugin)</h2>
+    <pre>git clone https://github.com/jmcentire/simulacrum.git
+claude --plugin-dir ./simulacrum</pre>
+    <p>Invoke <code>/simulacrum:get-advice</code> with an idea, plan, claim, draft, or architecture question.</p>
+
     <h2>Quick start (Fly deployment)</h2>
     <pre>cd simulacrum/fly
 fly launch --no-deploy --copy-config       # rename the app
