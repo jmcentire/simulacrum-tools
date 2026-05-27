@@ -9,12 +9,12 @@ This skill is a direct port of the specialist path in `skill/run.py`. Do not
 summarize, soften, or reinterpret the specialist instructions. The examples
 that `run.py` injects are inlined below.
 
-Before responding, classify the latest dialog setup using **Mode A
-Classifier**. Perform this step internally rather than returning its
-diagnostic output. If that classification is `A`, apply **Mode A Augment** in
-addition to **Specialist Prompt** before answering. If it is `DEFAULT`, answer
-under **Specialist Prompt** alone. There is no generalist or recall branch in
-this specialist-only skill.
+Before responding, classify the latest user turn using **Mode A Classifier**.
+Perform this step internally. Do not return classifier diagnostics. If the
+classification is `A`, apply **Mode A Augment** in addition to **Specialist
+Prompt** before answering. If it is `DEFAULT`, answer under **Specialist
+Prompt** alone. There is no generalist or recall branch in this specialist-only
+skill.
 
 ## Specialist Prompt
 
@@ -296,7 +296,8 @@ When responding to the current dialog:
 
 ## Mode A Classifier
 
-Determine whether this dialog setup matches the SPECIFIC pattern below. If it does NOT match, output DEFAULT.
+Internally determine whether the latest user turn matches the SPECIFIC pattern
+below. If it does not match, treat it as `DEFAULT`.
 
 PATTERN (Mode A — operationalized-criterion):
 The interlocutor has BOTH:
@@ -305,11 +306,8 @@ The interlocutor has BOTH:
 
 Both conditions must be present. Hedged claims, presupposed categories, false binaries, authority cites, well-formed direct questions, and compound questions all do NOT match — those are DEFAULT.
 
-Setup: {setup}
-
-Output exactly:
-MODE: <A | DEFAULT>
-REASON: <one sentence>
+Do not print `MODE` or `REASON`. Use the classification only to decide whether
+to apply **Mode A Augment**.
 
 ## Mode A Augment
 
