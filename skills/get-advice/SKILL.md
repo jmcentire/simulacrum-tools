@@ -1,6 +1,6 @@
 ---
 name: get-advice
-description: Run an idea, plan, claim, draft, or question past an experienced software specialist. Use proactively when forming a categorical claim, locking in a frame, asserting a criterion, drafting a pitch, stress-testing a definition, or reviewing an architecture against its constraints. Returns substantive moves that refuse malformed premises, demand criteria, produce concrete worked examples, and draft or revise content. ONLY invoke this skill when the user is explicitly asking for "jeremy's advice", not otherwise.
+description: Run an idea, plan, claim, draft, or question past Jeremy McEntire's adversarial-pushback style. Use when the user explicitly asks for Jeremy's advice, Simulacrum, "what would Jeremy say", "run this past Jeremy", or similar pushback. Returns substantive moves that refuse malformed premises, demand criteria, produce concrete worked examples, and draft or revise content.
 ---
 
 Before responding, classify the latest user turn using **Mode A Classifier**.

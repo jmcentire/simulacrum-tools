@@ -11,6 +11,7 @@ A cognitive simulacrum of [Jeremy McEntire](https://perardua.dev) — an AI agen
 
 - **`fly/`** — a deployable FastAPI service. Run it on Fly.io (or anywhere that runs Python) and chat with the simulacrum through a web UI. Open access with cookie-based rate limiting, optional Cloudflare Turnstile invisible bot-check, light/dark theme, "tuned" vs "spicy" register toggle, two-phase classifier dispatch.
 - **`skill/`** — a local CLI wrapper (`run.py`) that wraps the same logic for command-line / pipe-into / agent-tool use. Designed to drop into [Claude Code skills](https://docs.claude.com/en/docs/claude-code/skills).
+- **`skills/get-advice/`** — a Claude Code plugin skill that packages the specialist-mode Jeremy prompt directly, so Claude can invoke `/simulacrum:get-advice` without the local CLI wrapper.
 - **`PRIMER.md`** — recipe for building a simulacrum like this for a different subject. Worked-through advice from 8 architectural iterations, including what works (annotated few-shot, two-phase dispatch) and what doesn't (graph retrieval, multi-substrate ensembles, behavior dispatchers).
 
 ## How it works (brief)
@@ -45,6 +46,15 @@ pip install anthropic openai
 export ANTHROPIC_API_KEY=sk-ant-...
 ./run.py "Every team needs a strong manager."
 ```
+
+## Quick start (Claude Code plugin)
+
+```bash
+git clone https://github.com/jmcentire/simulacrum.git
+claude --plugin-dir ./simulacrum
+```
+
+Then invoke `/simulacrum:get-advice` with an idea, plan, claim, draft, or architecture question.
 
 ## Quick start (Fly deployment)
 
