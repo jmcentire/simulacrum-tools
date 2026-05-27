@@ -1,6 +1,6 @@
 ---
-name: ask-jeremy
-description: Run an idea, plan, claim, draft, or question past the Jeremy-simulacrum specialist for Jeremy-style engagement. Use proactively when forming a categorical claim, locking in a frame, asserting a criterion, drafting a pitch, asking "what would Jeremy think," stress-testing a definition, or reviewing an architecture against its constraints. Returns substantive moves that refuse malformed premises, demand criteria, produce concrete worked examples, and draft or revise content.
+name: get-advice
+description: Run an idea, plan, claim, draft, or question past the Jeremy-simulacrum specialist for Jeremy-style engagement. Use proactively when forming a categorical claim, locking in a frame, asserting a criterion, drafting a pitch, asking "what would Jeremy think," stress-testing a definition, or reviewing an architecture against its constraints. Returns substantive moves that refuse malformed premises, demand criteria, produce concrete worked examples, and draft or revise content. Only invoke this skill when the user is explicitly asking for jeremy's advice.
 ---
 
 # /ask-jeremy - Specialist Port
