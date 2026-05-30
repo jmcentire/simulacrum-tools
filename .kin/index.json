@@ -1,0 +1,133 @@
+{
+  "domains": [
+    "code",
+    "python"
+  ],
+  "node_count": 11,
+  "nodes": [
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-mod-simulacrum-11d3e62110ab",
+      "title": "fly/agents/specialist.py",
+      "type": "artifact",
+      "updated_at": "2026-05-30T14:50:22",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-mod-simulacrum-2ea21d56423c",
+      "title": "fly/app.py",
+      "type": "artifact",
+      "updated_at": "2026-05-30T14:50:22",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-mod-simulacrum-9f6d94f42b9f",
+      "title": "fly/agents/dispatcher.py",
+      "type": "artifact",
+      "updated_at": "2026-05-30T14:50:22",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-mod-simulacrum-b1703f8f77c4",
+      "title": "fly/agents/generalist.py",
+      "type": "artifact",
+      "updated_at": "2026-05-30T14:50:22",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-mod-simulacrum-f6725ff8068d",
+      "title": "skill/run.py",
+      "type": "artifact",
+      "updated_at": "2026-05-30T14:50:22",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-sym-simulacrum-3f352530c2ae",
+      "title": "ChatResponse",
+      "type": "concept",
+      "updated_at": "2026-05-30T14:50:22",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-sym-simulacrum-5967b0379cd3",
+      "title": "Dispatcher",
+      "type": "concept",
+      "updated_at": "2026-05-30T14:50:22",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-sym-simulacrum-8d65d93b7c5f",
+      "title": "SpecialistAgent",
+      "type": "concept",
+      "updated_at": "2026-05-30T14:50:22",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-sym-simulacrum-d0083b30e795",
+      "title": "DialogTurn",
+      "type": "concept",
+      "updated_at": "2026-05-30T14:50:22",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-sym-simulacrum-e84b3adab0b4",
+      "title": "GeneralistAgent",
+      "type": "concept",
+      "updated_at": "2026-05-30T14:50:22",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-sym-simulacrum-f769243da100",
+      "title": "ChatRequest",
+      "type": "concept",
+      "updated_at": "2026-05-30T14:50:22",
+      "weight": 0.5
+    }
+  ],
+  "repo": "simulacrum",
+  "source_updated_at": "2026-05-30T14:50:22",
+  "version": 1
+}
