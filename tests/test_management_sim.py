@@ -2,6 +2,7 @@ import json
 import sys
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 
@@ -505,6 +506,29 @@ class ManagementSimTests(unittest.TestCase):
         self.assertEqual(evidence[0], "maya left: preventable / overload.")
         self.assertIn("push_scope applied to Maya Patel.", evidence)
         self.assertNotIn("The manager wrote a report.", evidence)
+
+    def test_assessor_scores_outcomes_not_action_labels_or_journal_text(self):
+        service = ManagementSimService()
+        state = service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        base_events = [
+            {
+                "event_type": "daily_report_submitted",
+                "payload": {"journal": {"observations": "I am brilliant at management."}},
+            },
+            {
+                "event_type": "manager_action",
+                "payload": {"action": "delegate_ownership", "day": 1, "persona_id": "maya", "summary": "delegate_ownership applied to Maya Patel."},
+            },
+        ]
+        alternate_events = deepcopy(base_events)
+        alternate_events[0]["payload"]["journal"]["observations"] = "I am terrible at management."
+        alternate_events[1]["payload"]["action"] = "push_scope"
+        alternate_events[1]["payload"]["summary"] = "push_scope applied to Maya Patel."
+
+        first = HypervisorAssessor().assess(state, base_events).to_dict()
+        second = HypervisorAssessor().assess(state, alternate_events).to_dict()
+        for axis in ("person_traits", "team_dynamics", "product_complications", "crisis_outcomes"):
+            self.assertEqual(first[axis]["score"], second[axis]["score"])
 
     def test_owner_departure_creates_handoff_debt_not_permanent_done_work_block(self):
         personas = {persona.id: persona for persona in PersonaStore().load_all()}

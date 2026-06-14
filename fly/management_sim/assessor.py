@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from typing import Any
 
 from .latent_state import advance_day
@@ -21,16 +20,6 @@ class HypervisorAssessor:
         self.personas = PersonaStore()
 
     def assess(self, state: dict[str, Any], events: list[dict[str, Any]]) -> AssessmentReport:
-        action_counts = Counter(
-            event["payload"].get("action")
-            for event in events
-            if event["event_type"] == "manager_action"
-        )
-        daily_journals = [
-            event["payload"].get("journal", {})
-            for event in events
-            if event["event_type"] == "daily_report_submitted"
-        ]
         prediction_events = [
             event["payload"]
             for event in events
@@ -64,19 +53,7 @@ class HypervisorAssessor:
         if total_predictions:
             hit_rate = hits / total_predictions
             mean_error = confidence_error / total_predictions
-            calibration = round((hit_rate - 0.5) * 8 - max(0, mean_error - 35) / 15)
-
-        journal_quality = 0
-        for journal in daily_journals:
-            if journal.get("observations"):
-                journal_quality += 1
-            if journal.get("hypotheses"):
-                journal_quality += 1
-            if journal.get("questions"):
-                journal_quality += 1
-            if journal.get("change_mind"):
-                journal_quality += 1
-        journal_quality = min(5, journal_quality // max(1, len(daily_journals) * 2))
+            calibration = max(-1, min(1, round((hit_rate - 0.5) * 8 - max(0, mean_error - 35) / 15)))
 
         grounded_actions = 0
         for action in action_events:
@@ -97,8 +74,20 @@ class HypervisorAssessor:
         avg_burnout = sum(item.get("burnout", 0) for item in team_states) // max(1, len(team_states))
         avg_load = sum(item.get("load", 0) for item in team_states) // max(1, len(team_states))
         avg_trust = sum(item.get("trust", 0) for item in team_states) // max(1, len(team_states))
+        avg_morale = sum(item.get("morale", 0) for item in team_states) // max(1, len(team_states))
         avg_quality = sum(item.get("quality", 0) for item in team_states) // max(1, len(team_states))
         avg_risk = sum(item.get("flight_risk", 0) for item in team_states) // max(1, len(team_states))
+        avg_alignment = sum(
+            (
+                item.get("mastery_alignment", 0)
+                + item.get("autonomy_alignment", 0)
+                + item.get("purpose_alignment", 0)
+            )
+            // 3
+            for item in team_states
+        ) // max(1, len(team_states))
+        avg_manager_assessment = sum(item.get("manager_assessment", 0) for item in team_states) // max(1, len(team_states))
+        avg_opinion = sum(item.get("opinion_of_manager", 0) for item in team_states) // max(1, len(team_states))
         relationships = list(state.get("relationships", {}).values())
         avg_relationship_trust = sum(item.get("trust", 0) for item in relationships) // max(1, len(relationships))
         avg_relationship_friction = sum(item.get("friction", 0) for item in relationships) // max(1, len(relationships))
@@ -109,6 +98,7 @@ class HypervisorAssessor:
         unfinished_work = sum(1 for item in workstreams if item.get("state") not in {"done", "maintenance"})
         work_penalty = min(3, blocked_work + rework_work + max(0, unfinished_work - 2) // 2)
         velocity_penalty = max(0, 45 - product.get("velocity", 50)) // 10
+        error_penalty = max(0, product.get("error_rate", 0) - 28) // 10
         structure = team_structure(
             list(state.get("team", [])),
             {persona_id: self.personas.get(persona_id) for persona_id in state.get("team", [])},
@@ -123,17 +113,39 @@ class HypervisorAssessor:
         investigation_bonus = min(2, len(investigation_events) // 5)
         preventable_exits = sum(1 for event in exit_events if event.get("cause") == "preventable")
         external_exits = sum(1 for event in exit_events if event.get("cause") == "external")
-        preventable_exit_penalty = min(4, preventable_exits * 2)
-        exit_handoff_penalty = min(3, len(exit_events))
+        preventable_exit_penalty = min(5, preventable_exits * 3)
+        exit_handoff_penalty = min(4, len(exit_events) * 2)
+        sustainable_load_penalty = max(0, avg_burnout - 58) // 10 + max(0, avg_load - 78) // 10
+        people_fit_penalty = max(0, 52 - avg_manager_assessment) // 10 + max(0, 55 - avg_opinion) // 10
+        human_outcome_bonus = min(
+            2,
+            max(0, avg_trust - 65) // 14
+            + max(0, avg_morale - 68) // 12
+            + max(0, avg_alignment - 70) // 14,
+        )
+        product_outcome_bonus = min(
+            4,
+            max(0, product.get("alignment", 50) - 68) // 12
+            + max(0, avg_quality - 68) // 14
+            + max(0, product.get("total_value", 50) - 78) // 10
+            + max(0, product.get("velocity", 50) - 38) // 8,
+        )
+        crisis_outcome_bonus = min(
+            4,
+            max(0, 70 - avg_risk) // 15
+            + max(0, 70 - avg_burnout) // 15
+            + max(0, structure["redundancy"] - 65) // 15
+            + max(0, structure["bus_factor"] - 65) // 15,
+        )
 
         person_score = _clamp(
             calibration
-            + journal_quality
             + investigation_bonus
             + grounded_bonus
-            + min(2, action_counts["coach_directly"] + action_counts["delegate_ownership"] + action_counts["recognize_work"])
-            - min(3, action_counts["push_scope"])
+            + human_outcome_bonus
             - sustainability_penalty
+            - sustainable_load_penalty
+            - people_fit_penalty
             - trust_penalty
             - ungrounded_penalty
             - prediction_penalty
@@ -141,12 +153,11 @@ class HypervisorAssessor:
             - preventable_exit_penalty
         )
         team_score = _clamp(
-            journal_quality
-            + investigation_bonus
+            investigation_bonus
             + grounded_bonus
-            + min(2, action_counts["cross_train"] + action_counts["mediate_conflict"] + action_counts["protect_slack"])
-            - min(2, action_counts["increase_checkins"] + action_counts["push_scope"])
+            + min(2, max(0, avg_relationship_trust - 55) // 10 + max(0, 55 - avg_relationship_friction) // 12)
             - sustainability_penalty
+            - sustainable_load_penalty
             - trust_penalty
             - relationship_penalty
             - ungrounded_penalty
@@ -156,9 +167,9 @@ class HypervisorAssessor:
         )
         product_score = _clamp(
             calibration
-            + min(2, action_counts["clarify_scope"] + action_counts["protect_slack"])
-            - min(2, action_counts["defer_decision"] + action_counts["push_scope"])
+            + product_outcome_bonus
             - quality_penalty
+            - error_penalty
             - max(0, 45 - product.get("alignment", 50)) // 10
             - velocity_penalty
             - work_penalty
@@ -167,9 +178,9 @@ class HypervisorAssessor:
         )
         crisis_score = _clamp(
             calibration
-            + min(2, action_counts["protect_slack"] + action_counts["cross_train"])
-            - min(2, action_counts["push_scope"])
+            + crisis_outcome_bonus
             - sustainability_penalty
+            - sustainable_load_penalty
             - relationship_penalty
             - ungrounded_penalty
             - construction_penalty
@@ -191,7 +202,7 @@ class HypervisorAssessor:
                 person_score,
                 evidence or ["No manager evidence recorded yet."],
                 [
-                    "The simulator gives more weight to observed hypotheses and resolved predictions than to action labels.",
+                    "The simulator gives more weight to observed outcomes and resolved predictions than to action labels.",
                     f"{grounded_actions} intervention(s) were preceded by same-day investigation or 1:1 evidence; {ungrounded_actions} were not.",
                     f"{blocked_work} workstream(s) remained blocked, {rework_work} were in rework, and the visible velocity ended at {product.get('velocity', 50)}.",
                     f"{preventable_exits} preventable exit(s) and {external_exits} outside-offer exit(s) occurred during the run.",
