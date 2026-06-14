@@ -7,8 +7,8 @@
       "Python"
     ],
     "frameworks": [],
-    "analyzedAt": "2026-06-12T14:16:23-05:00",
-    "gitCommitHash": "cbaec1faa71bd9d1b7b1568410b429c072f9b66c"
+    "analyzedAt": "2026-06-14T00:17:16-05:00",
+    "gitCommitHash": "0bc35485af8dd624d1b93cce1e63bc009e50c178"
   },
   "nodes": [
     {
@@ -118,7 +118,7 @@
       "type": "file",
       "name": "fly/app.py",
       "filePath": "fly/app.py",
-      "summary": "Language: Python | Path: fly/app.py | ~240 lines ## Classes - ChatRequest(BaseModel)",
+      "summary": "Language: Python | Path: fly/app.py | ~252 lines ## Classes - ChatRequest(BaseModel)",
       "tags": [
         "code",
         "python"

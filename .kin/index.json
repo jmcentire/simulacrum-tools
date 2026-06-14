@@ -35,7 +35,7 @@
       "id": "code-mod-simulacrum-public-2ea21d56423c",
       "title": "fly/app.py",
       "type": "artifact",
-      "updated_at": "2026-06-14T00:16:47",
+      "updated_at": "2026-06-14T00:19:10",
       "weight": 0.5
     },
     {
@@ -101,7 +101,7 @@
       "id": "code-sym-simulacrum-public-3f352530c2ae",
       "title": "ChatResponse",
       "type": "concept",
-      "updated_at": "2026-06-14T00:16:47",
+      "updated_at": "2026-06-14T00:19:10",
       "weight": 0.01
     },
     {
@@ -134,7 +134,7 @@
       "id": "code-sym-simulacrum-public-d0083b30e795",
       "title": "DialogTurn",
       "type": "concept",
-      "updated_at": "2026-06-14T00:16:47",
+      "updated_at": "2026-06-14T00:19:10",
       "weight": 0.01
     },
     {
@@ -156,11 +156,11 @@
       "id": "code-sym-simulacrum-public-f769243da100",
       "title": "ChatRequest",
       "type": "concept",
-      "updated_at": "2026-06-14T00:16:47",
+      "updated_at": "2026-06-14T00:19:10",
       "weight": 0.01
     }
   ],
   "repo": "simulacrum-public",
-  "source_updated_at": "2026-06-14T00:16:47",
+  "source_updated_at": "2026-06-14T00:19:10",
   "version": 1
 }

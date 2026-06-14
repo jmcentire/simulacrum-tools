@@ -167,8 +167,10 @@ async def chat(req: ChatRequest,
     if not await _verify_turnstile(req.turnstile_token, cf_connecting_ip):
         raise HTTPException(status_code=403, detail="Bot check failed. Refresh and try again.")
 
-    register_mode = simulacrum_register if simulacrum_register in ("professional", "sailor") else "professional"
-    chat_mode = simulacrum_mode if simulacrum_mode in ("review", "teach") else "review"
+    invalid_register = simulacrum_register is not None and simulacrum_register not in ("professional", "sailor")
+    invalid_mode = simulacrum_mode is not None and simulacrum_mode not in ("review", "teach")
+    register_mode = simulacrum_register if not invalid_register and simulacrum_register else "professional"
+    chat_mode = simulacrum_mode if not invalid_mode and simulacrum_mode else "review"
     dialogue = [(t.role, t.text) for t in req.dialog]
     if chat_mode == "teach":
         out = teach.utterance(dialogue, temperature=req.temperature, register_mode=register_mode)
@@ -189,6 +191,16 @@ async def chat(req: ChatRequest,
         COUNTER_COOKIE, _write_counter(timestamps),
         max_age=WINDOW_SECONDS, httponly=True, samesite="lax", secure=True,
     )
+    if invalid_register:
+        resp.set_cookie(
+            REGISTER_COOKIE, register_mode,
+            max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=True,
+        )
+    if invalid_mode:
+        resp.set_cookie(
+            MODE_COOKIE, chat_mode,
+            max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=True,
+        )
     return resp
 
 
@@ -221,14 +233,14 @@ def _set_register_response(register_mode: str) -> JSONResponse:
 @app.post("/register")
 async def set_register(register_mode: str = Form(...)):
     if register_mode not in ("professional", "sailor"):
-        raise HTTPException(status_code=400, detail="register_mode must be 'professional' or 'sailor'")
+        register_mode = "professional"
     return _set_register_response(register_mode)
 
 
 @app.post("/mode")
 async def set_mode(mode: str = Form(...)):
     if mode not in ("review", "teach"):
-        raise HTTPException(status_code=400, detail="mode must be 'review' or 'teach'")
+        mode = "review"
     resp = JSONResponse({"mode": mode})
     resp.set_cookie(
         MODE_COOKIE, mode,
