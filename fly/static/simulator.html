@@ -111,6 +111,22 @@
         </div>`).join('');
     }
 
+    function inboxPanel() {
+      const inbox = week.artifact_inbox || [];
+      const attention = run.attention || { remaining: 0, budget: 0 };
+      return `
+        <div class="panel">
+          <h2>Inbox · Attention ${attention.remaining}/${attention.budget}</h2>
+          <p class="muted">You cannot investigate everything. Open the traces that matter, then decide what remains unexamined.</p>
+          ${inbox.map(item => `
+            <div style="border-top:1px solid var(--border); padding-top:10px; margin-top:10px">
+              <div class="muted"><strong>${esc(item.channel)}</strong> · ${esc(item.title)}</div>
+              <div class="muted" style="margin-top:4px">${esc(item.preview)}</div>
+              ${item.revealed ? `<div class="report" style="margin-top:8px">${esc(item.detail)}</div>` : `<button class="secondary investigate-artifact" data-artifact="${esc(item.id)}" style="margin-top:8px">Investigate</button>`}
+            </div>`).join('')}
+        </div>`;
+    }
+
     function trackingPanel() {
       const choices = [
         ['delivery', 'Delivery'],
@@ -257,8 +273,11 @@
               <div class="metric">Budget remaining ${money(run.cash_remaining_cents)}</div>
               <div class="metric">Weekly deliverable: ${esc(week.curriculum.deliverable)}</div>
               <div style="height:10px"></div>
+              ${(week.world_events || []).map(event => `<div class="muted"><strong>${esc(event.title)}</strong><br>${esc(event.summary)}</div>`).join('')}
+              ${(week.world_events || []).length ? '<div style="height:10px"></div>' : ''}
               ${(week.product_observations || []).map(item => `<div class="muted">${esc(item)}</div>`).join('')}
             </div>
+            ${inboxPanel()}
             ${reports()}
           </section>
           <aside>
@@ -307,6 +326,16 @@
             const data = await api(`/api/management-sim/dialogue/${persona}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ message }) });
             target.textContent = data.response_text;
           } catch (err) { target.textContent = err.message; }
+        };
+      });
+      document.querySelectorAll('.investigate-artifact').forEach(button => {
+        button.onclick = async () => {
+          try {
+            const data = await api('/api/management-sim/investigate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ artifact_id:button.dataset.artifact }) });
+            run = data.run;
+            await loadWeek();
+            render();
+          } catch (err) { alert(err.message); }
         };
       });
       document.getElementById('apply-action').onclick = async () => {

@@ -11,8 +11,10 @@ sys.path.insert(0, str(ROOT / "fly"))
 import db  # noqa: E402
 from management_sim.guard import InputGuard, OutputAuditor  # noqa: E402
 from management_sim.latent_state import apply_action, initial_state  # noqa: E402
+from management_sim.relationships import relationship_context  # noqa: E402
 from management_sim.persona_store import PersonaStore  # noqa: E402
 from management_sim.service import ManagementSimService  # noqa: E402
+from management_sim.structure import team_structure  # noqa: E402
 from management_sim import persistence  # noqa: E402
 
 
@@ -184,6 +186,108 @@ class ManagementSimTests(unittest.TestCase):
         serialized = json.dumps(public).lower()
         self.assertIn("observations", serialized)
         self.assertNotIn("visible_flags", serialized)
+
+    def test_public_state_exposes_inbox_without_relationship_scores(self):
+        service = ManagementSimService()
+        state = service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        public = service.public_state(state)
+        serialized = json.dumps(public).lower()
+        self.assertIn("artifact_inbox", public)
+        self.assertGreaterEqual(len(public["artifact_inbox"]), 3)
+        self.assertNotIn("relationship_trust", serialized)
+        self.assertNotIn("knowledge_flow", serialized)
+        self.assertNotIn("relationship_friction", serialized)
+
+    def test_investigating_artifact_spends_attention_and_reveals_detail(self):
+        service = ManagementSimService()
+        state = service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        artifact_id = state["artifact_inbox"][0]["id"]
+        public = service.investigate_artifact("user-1", artifact_id)
+        self.assertEqual(public["attention"]["remaining"], 3)
+        item = next(item for item in public["artifact_inbox"] if item["id"] == artifact_id)
+        self.assertTrue(item["revealed"])
+        self.assertIsNotNone(item["detail"])
+        public = service.investigate_artifact("user-1", artifact_id)
+        self.assertEqual(public["attention"]["remaining"], 3)
+        events = persistence.list_events(service.load_active_run("user-1")["run_id"], "user-1")
+        self.assertEqual(len([event for event in events if event["event_type"] == "artifact_investigated"]), 1)
+
+    def test_first_one_on_one_spends_attention_once_per_person(self):
+        service = ManagementSimService()
+        service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        service.send_message("user-1", "maya", "What are we missing?")
+        after_first = service.load_active_run("user-1")
+        self.assertEqual(after_first["attention"]["remaining"], 3)
+        service.send_message("user-1", "maya", "What would make this easier?")
+        after_second = service.load_active_run("user-1")
+        self.assertEqual(after_second["attention"]["remaining"], 3)
+
+    def test_relationship_context_changes_when_cross_training_and_mediating(self):
+        service = ManagementSimService()
+        state = service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        before = relationship_context(state["relationships"], "maya")
+        service.apply_manager_action("user-1", "maya", "cross_train", "Reduce single-person knowledge.")
+        service.apply_manager_action("user-1", "maya", "mediate_conflict", "Address a tense review.")
+        service.set_tracking_focus("user-1", ["delivery"])
+        service.submit_day_report(
+            "user-1",
+            {
+                "observations": "The team has a fragile handoff and one tense review thread.",
+                "hypotheses": "The issue is shared context, not effort.",
+                "questions": "I need to know whether the handoff is the real bottleneck.",
+                "decision": "I will pair people and address the review directly.",
+                "change_mind": "I will revise this if the next artifacts show the issue is scope.",
+                "predictions": [],
+            },
+        )
+        service.advance_day("user-1")
+        after_state = service.load_active_run("user-1")
+        after = relationship_context(after_state["relationships"], "maya")
+        self.assertGreaterEqual(after["knowledge_flow"], before["knowledge_flow"])
+        self.assertLessEqual(after["relationship_friction"], before["relationship_friction"])
+
+    def test_scope_pivot_and_dependency_leave_are_visible_discontinuities(self):
+        service = ManagementSimService()
+        service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        for day in range(1, 16):
+            service.set_tracking_focus("user-1", ["delivery"])
+            service.submit_day_report(
+                "user-1",
+                {
+                    "observations": f"Day {day} has a visible delivery tradeoff and an unclear handoff.",
+                    "hypotheses": "The current constraint is coordination, not a lack of effort.",
+                    "questions": "Which dependency matters most before the next milestone?",
+                    "decision": "I will preserve slack and clarify the next priority.",
+                    "change_mind": "I will revise this if the next artifacts show a local execution problem.",
+                    "predictions": [],
+                },
+            )
+            if day == 4:
+                pool = service.load_active_run("user-1")["milestones"]["week_1_hire"]["pool"]
+                service.select_interviews("user-1", pool[:2])
+            if day == 5:
+                state = service.load_active_run("user-1")
+                service.choose_hire("user-1", state["milestones"]["week_1_hire"]["pool"][0])
+            if day == 9:
+                state = service.load_active_run("user-1")
+                service.select_terminations("user-1", state["team"][-2:])
+            if day == 10:
+                service.choose_backfill("user-1", None)
+            if day % 5 == 0:
+                service.submit_week_report("user-1", f"Week {day // 5}: the team is learning where the work is fragile.")
+            service.advance_day("user-1", expected_day=day)
+        state = service.load_active_run("user-1")
+        public = service.public_state(state)
+        kinds = {event["kind"] for event in public["world_events"]}
+        self.assertIn("dependency_leave", kinds)
+        self.assertTrue(any(item["channel"] == "executive" for item in public["artifact_inbox"]))
+
+    def test_team_structure_changes_when_unique_skill_holders_leave(self):
+        personas = {persona.id: persona for persona in PersonaStore().load_all()}
+        initial = team_structure(["maya", "jonah", "elena", "trent", "rhea"], personas, {}, "build")
+        reduced = team_structure(["maya", "jonah", "trent"], personas, {}, "build")
+        self.assertLessEqual(reduced["coverage"], initial["coverage"])
+        self.assertLess(reduced["redundancy"], initial["redundancy"])
 
 
 if __name__ == "__main__":

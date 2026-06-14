@@ -12,11 +12,17 @@ The current module implements a twenty-session curriculum loop:
 - choose what product evidence to track
 - generate simulated-week reports from hidden persona state
 - conduct guarded 1:1 conversations
+- spend finite daily attention on 1:1s or artifact investigation rather than
+  seeing every signal for free
+- inspect noisy artifact packets from planning, Slack, code review, stakeholder,
+  and calendar channels
 - write an end-of-day notebook: observations, hypotheses, questions, decision,
   prediction, and what would change the manager's mind
 - advance the world asynchronously and let consequences surface
 - make a hire in week 1, terminate two roles in week 2, optionally use one
   backfill slot, then operate through changing goals and incidents
+- survive a roadmap pivot and an unexpected dependency-holder leave event that
+  test whether the manager built redundancy rather than just short-term output
 - request a hypervisor report with -5..+5 alignment by person trait, team
   dynamic, product complication, and crisis outcome
 
@@ -27,6 +33,8 @@ The current module implements a twenty-session curriculum loop:
 - `persona_store.py` loads 27 tracked persona files
 - `latent_state.py` applies deterministic action effects and seeded world ticks
 - `observations.py` converts hidden state into concrete, indirect clues
+- `relationships.py` maintains hidden pairwise trust, friction, dependency,
+  knowledge flow, and generates multi-channel artifact packets
 - `guard.py` blocks prompt injection/state probing and audits output leakage
 - `artifacts.py` generates reports and persona dialogue
 - `persistence.py` stores runs, snapshots, artifacts, turns, and event logs
@@ -65,6 +73,8 @@ The simulator models a small number of load-bearing dynamics:
    hidden until they become consequences.
 5. Actions have delayed, noisy effects. The manager gets one timeline, not an
    alternate-history oracle.
+6. A well-built team should survive discontinuity better than a team that only
+   looked productive under static conditions.
 
 Roadmap pressure is separate from delivery velocity. Clarifying scope reduces
 future pressure even if the team appears to move faster today; pushing scope

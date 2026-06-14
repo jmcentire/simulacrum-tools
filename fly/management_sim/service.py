@@ -15,6 +15,16 @@ from .latent_state import ACTION_VOCABULARY, advance_day, apply_action, initial_
 from .models import HiddenState
 from .observations import persona_observations, product_observations
 from .persona_store import PersonaStore
+from .relationships import (
+    add_persona_relationships,
+    advance_relationships,
+    generate_inbox,
+    initial_relationships,
+    public_inbox,
+    relationship_context,
+    remove_persona_relationships,
+)
+from .structure import structure_pressure, team_structure
 
 
 STARTING_TEAM_IDS = ["maya", "jonah", "elena", "trent", "rhea"]
@@ -51,6 +61,11 @@ class ManagementSimService:
             "product_pressure": 74,
             "reports": {"daily": {}, "weekly": {}},
             "tracking_focus": [],
+            "relationships": initial_relationships(run_id, team, self._persona_map(team)),
+            "attention": {"budget": 4, "remaining": 4, "spent": []},
+            "artifact_inbox": [],
+            "day_actions": [],
+            "world_events": [],
             "milestones": {
                 "week_1_hire": {
                     "pool": self._candidate_ids(run_id, "week_1_hire", team),
@@ -69,6 +84,8 @@ class ManagementSimService:
         }
         persistence.create_run(user_id, mission, budget_cents, state)
         persistence.append_event(run_id, user_id, "run_started", {"summary": "Started with five-person team and an oversized mission."})
+        self._refresh_day_context(state)
+        persistence.save_run(user_id, state)
         self._ensure_week_artifacts(user_id, state)
         return state
 
@@ -107,6 +124,9 @@ class ManagementSimService:
             "team": team,
             "product": state["product"],
             "tracking_focus": state["tracking_focus"],
+            "attention": state["attention"],
+            "artifact_inbox": public_inbox(state["artifact_inbox"]),
+            "world_events": self._public_world_events(state),
             "curriculum": plan_for_day(state["day"]),
             "reports_due": self._reports_due(state),
             "milestones": self._public_milestones(state),
@@ -139,6 +159,9 @@ class ManagementSimService:
             "reports": reports,
             "product": state["product"],
             "tracking_focus": state["tracking_focus"],
+            "attention": state["attention"],
+            "artifact_inbox": public_inbox(state["artifact_inbox"]),
+            "world_events": self._public_world_events(state),
             "product_observations": product_observations(
                 {**state["product"], "pressure": state["product_pressure"]},
                 team_states,
@@ -155,9 +178,14 @@ class ManagementSimService:
         state = self._require_run(user_id)
         if persona_id not in state["team"]:
             raise ValueError("persona is not on this team")
+        history = persistence.list_turns(state["run_id"], persona_id, state["day"])
+        has_spent_attention = any(item.get("type") == "1:1" and item.get("persona_id") == persona_id for item in state["attention"]["spent"])
+        if not history and not has_spent_attention:
+            self._spend_attention(state, "1:1", persona_id, f"Opened a 1:1 with {persona_id}.")
         persona = self.personas.get(persona_id)
         hidden = HiddenState(**state["team_state"][persona_id])
         response = self.artifacts.send_message(state["run_id"], persona, hidden, message)
+        persistence.save_run(user_id, state)
         persistence.append_event(
             state["run_id"],
             user_id,
@@ -165,6 +193,28 @@ class ManagementSimService:
             {"persona_id": persona_id, "turn_number": response["turn_number"], "state_hash": state_hash(hidden)},
         )
         return response
+
+    def investigate_artifact(self, user_id: str, artifact_id: str) -> dict[str, Any]:
+        state = self._require_run(user_id)
+        artifact = next((item for item in state["artifact_inbox"] if item["id"] == artifact_id), None)
+        if not artifact:
+            raise ValueError("artifact not found")
+        if not artifact.get("revealed", False):
+            self._spend_attention(state, "artifact", artifact_id, f"Investigated {artifact['channel']} artifact.")
+            artifact["revealed"] = True
+            persistence.append_event(
+                state["run_id"],
+                user_id,
+                "artifact_investigated",
+                {
+                    "day": state["day"],
+                    "artifact_id": artifact_id,
+                    "channel": artifact["channel"],
+                    "summary": artifact["title"],
+                },
+            )
+        persistence.save_run(user_id, state)
+        return self.public_state(state) or {}
 
     def apply_manager_action(self, user_id: str, persona_id: str, action: str, rationale: str = "") -> dict[str, Any]:
         state = self._require_run(user_id)
@@ -176,6 +226,7 @@ class ManagementSimService:
         after, deltas = apply_action(before, persona, action)
         after_hash = state_hash(after)
         state["team_state"][persona_id] = after.to_dict()
+        state["day_actions"].append({"persona_id": persona_id, "action": action})
         self._update_product_metrics_for_action(state, action)
         persistence.save_run(user_id, state)
         persistence.save_snapshot(state["run_id"], after, after_hash)
@@ -186,6 +237,7 @@ class ManagementSimService:
             {
                 "persona_id": persona_id,
                 "action": action,
+                "day": state["day"],
                 "summary": f"{action} applied to {persona.name}.",
                 "prior_state_hash": before_hash,
                 "new_state_hash": after_hash,
@@ -408,10 +460,23 @@ class ManagementSimService:
             persona = self.personas.get(persona_id)
             current = HiddenState(**state["team_state"][persona_id])
             seed = f"{state['run_id']}:day:{state['day']}:persona:{persona_id}"
-            next_state = advance_day(current, persona, seed, context, state["product_pressure"])
+            next_state = advance_day(
+                current,
+                persona,
+                seed,
+                context,
+                min(100, state["product_pressure"] + self._world_event_pressure(state)),
+                relationship_context(state["relationships"], persona_id),
+            )
             next_team_state[persona_id] = next_state.to_dict()
             persistence.save_snapshot(state["run_id"], next_state, state_hash(next_state))
         state["team_state"] = next_team_state
+        state["relationships"] = advance_relationships(
+            state["relationships"],
+            state["team_state"],
+            self._persona_map(state["team"]),
+            state["day_actions"],
+        )
         next_product = self._advance_product_metrics(state, next_team_state)
         self._resolve_predictions(user_id, state, before_by_persona, next_team_state, before_product, next_product)
         state["product"] = next_product
@@ -419,6 +484,11 @@ class ManagementSimService:
         state["day"] += 1
         state["week"] = week_for_day(state["day"])
         state["day_in_week"] = day_in_week(state["day"])
+        self._expire_world_events(state)
+        self._seed_discontinuities(state)
+        state["day_actions"] = []
+        state["attention"] = {"budget": 4, "remaining": 4, "spent": []}
+        self._refresh_day_context(state)
         persistence.save_run(user_id, state)
         persistence.append_event(
             state["run_id"],
@@ -540,6 +610,22 @@ class ManagementSimService:
             changed = True
         if "tracking_focus" not in state:
             state["tracking_focus"] = []
+            changed = True
+        if "relationships" not in state:
+            state["relationships"] = initial_relationships(state["run_id"], state["team"], self._persona_map(state["team"]))
+            changed = True
+        if "attention" not in state:
+            state["attention"] = {"budget": 4, "remaining": 4, "spent": []}
+            changed = True
+        if "artifact_inbox" not in state:
+            state["artifact_inbox"] = []
+            self._refresh_day_context(state)
+            changed = True
+        if "day_actions" not in state:
+            state["day_actions"] = []
+            changed = True
+        if "world_events" not in state:
+            state["world_events"] = []
             changed = True
         if "product_pressure" not in state:
             state["product_pressure"] = 74
@@ -688,6 +774,7 @@ class ManagementSimService:
         hidden["output"] = min(hidden["output"], 38)
         hidden["quality"] = min(hidden["quality"], 58)
         state["team_state"][persona_id] = hidden
+        add_persona_relationships(state["relationships"], state["run_id"], persona_id, state["team"], self._persona_map(state["team"]))
 
     def _remove_persona(self, state: dict[str, Any], persona_id: str) -> None:
         if persona_id not in state["team"]:
@@ -696,6 +783,135 @@ class ManagementSimService:
         state["team"].remove(persona_id)
         state["cash_remaining_cents"] += persona.salary_cents
         state["team_state"].pop(persona_id, None)
+        remove_persona_relationships(state["relationships"], persona_id)
+
+    def _refresh_day_context(self, state: dict[str, Any]) -> None:
+        state["artifact_inbox"] = generate_inbox(
+            state["run_id"],
+            state["day"],
+            state["team"],
+            state["team_state"],
+            state["relationships"],
+            self._persona_map(state["team"]),
+            state["product_pressure"],
+        )
+        for event in reversed(self._public_world_events(state)):
+            if event["start_day"] == state["day"]:
+                state["artifact_inbox"].insert(
+                    0,
+                    {
+                        "id": f"{state['day']}:event:{event['kind']}",
+                        "kind": f"event:{event['kind']}",
+                        "channel": "executive",
+                        "title": event["title"],
+                        "preview": event["summary"],
+                        "detail": event["detail"],
+                        "revealed": True,
+                    },
+                )
+
+    def _spend_attention(self, state: dict[str, Any], kind: str, target: str, summary: str) -> None:
+        if state["attention"]["remaining"] <= 0:
+            raise ValueError("you have no attention left this day; choose what to leave uninvestigated")
+        state["attention"]["remaining"] -= 1
+        state["attention"]["spent"].append({"type": kind, "target": target, "persona_id": target if kind == "1:1" else None, "summary": summary})
+
+    def _persona_map(self, ids: list[str]) -> dict[str, Any]:
+        return {persona_id: self.personas.get(persona_id) for persona_id in ids}
+
+    def _public_world_events(self, state: dict[str, Any]) -> list[dict[str, Any]]:
+        return [
+            {
+                "kind": event["kind"],
+                "title": event["title"],
+                "summary": event["summary"],
+                "detail": event["detail"],
+                "start_day": event["start_day"],
+                "end_day": event["end_day"],
+                "affected_persona_id": event.get("affected_persona_id"),
+            }
+            for event in state.get("world_events", [])
+            if event.get("status") == "active"
+        ]
+
+    def _team_structure(self, state: dict[str, Any]) -> dict[str, int]:
+        phase = "build" if state["day"] <= 10 else "operate"
+        return team_structure(state["team"], self._persona_map(state["team"]), state["relationships"], phase)
+
+    def _expire_world_events(self, state: dict[str, Any]) -> None:
+        for event in state.get("world_events", []):
+            if event.get("status") == "active" and event["end_day"] < state["day"]:
+                event["status"] = "resolved"
+
+    def _seed_discontinuities(self, state: dict[str, Any]) -> None:
+        if state["day"] == 12 and not any(event["kind"] == "scope_pivot" for event in state["world_events"]):
+            structure = self._team_structure(state)
+            relationship_values = list(state["relationships"].values())
+            avg_flow = sum(item["knowledge_flow"] for item in relationship_values) // max(1, len(relationship_values))
+            severity = 5 + max(0, 68 - structure["phase_fit"]) // 5 + max(0, 64 - avg_flow) // 7
+            state["world_events"].append(
+                {
+                    "kind": "scope_pivot",
+                    "title": "Roadmap pivot: a customer segment is moving faster than expected.",
+                    "summary": "The executive team wants the workflow builder moved ahead of reliability work without changing the quarter deadline.",
+                    "detail": "A major customer pilot now wants the workflow builder in the next release. The executive ask is to move it ahead of reliability work while keeping the quarter deadline unchanged.",
+                    "start_day": 12,
+                    "end_day": 15,
+                    "status": "active",
+                    "severity": severity,
+                }
+            )
+            state["product"]["alignment"] = _clamp(state["product"]["alignment"] - 10 - severity)
+            state["product"]["velocity"] = _clamp(state["product"]["velocity"] - severity)
+            state["product_pressure"] = _clamp(state["product_pressure"] + 7 + severity)
+        if state["day"] == 16 and not any(event["kind"] == "dependency_leave" for event in state["world_events"]):
+            affected_persona_id = self._dependency_hotspot(state)
+            affected_persona = self.personas.get(affected_persona_id)
+            structure = self._team_structure(state)
+            context = relationship_context(state["relationships"], affected_persona_id)
+            severity = 5 + max(0, 70 - structure["redundancy"]) // 3 + max(0, 70 - structure["bus_factor"]) // 3 + max(0, 64 - context["knowledge_flow"]) // 6
+            state["world_events"].append(
+                {
+                    "kind": "dependency_leave",
+                    "title": f"{affected_persona.name} is unexpectedly out for two weeks.",
+                    "summary": "The team loses a key source of context during an integration push.",
+                    "detail": f"{affected_persona.name} is out for two simulated weeks during the integration push. The work can continue, but the team now has to reconstruct decisions and handoffs without their usual context.",
+                    "start_day": 16,
+                    "end_day": 18,
+                    "status": "active",
+                    "affected_persona_id": affected_persona_id,
+                    "severity": severity,
+                }
+            )
+            affected = state["team_state"][affected_persona_id]
+            affected["output"] = _clamp(affected["output"] - 16 - severity)
+            affected["quality"] = _clamp(affected["quality"] - 5 - severity // 2)
+            affected["battery"] = _clamp(affected["battery"] - 6 - severity // 2)
+            for persona_id, hidden in state["team_state"].items():
+                if persona_id != affected_persona_id:
+                    hidden["load"] = _clamp(hidden["load"] + 3 + severity // 2)
+            state["product"]["velocity"] = _clamp(state["product"]["velocity"] - 4 - severity)
+            state["product"]["error_rate"] = _clamp(state["product"]["error_rate"] + 3 + severity // 2)
+            state["product_pressure"] = _clamp(state["product_pressure"] + 5 + severity)
+
+    def _dependency_hotspot(self, state: dict[str, Any]) -> str:
+        candidates = {}
+        for persona_id in state["team"]:
+            context = relationship_context(state["relationships"], persona_id)
+            candidates[persona_id] = context["dependency_load"] - context["knowledge_flow"] // 2
+        return max(candidates, key=candidates.get)
+
+    def _world_event_pressure(self, state: dict[str, Any]) -> int:
+        structure = self._team_structure(state)
+        pressure = 0
+        for event in state.get("world_events", []):
+            if event.get("status") != "active":
+                continue
+            if event["kind"] == "scope_pivot":
+                pressure += max(3, int(event.get("severity", 7)) // 2)
+            elif event["kind"] == "dependency_leave":
+                pressure += max(4, int(event.get("severity", 8)) // 2)
+        return pressure + structure_pressure(structure)
 
     def _team_context(self, states: list[HiddenState]) -> dict[str, int]:
         if not states:
@@ -718,9 +934,10 @@ class ManagementSimService:
         avg_trust = sum(item.trust for item in states) // len(states)
         rng = random.Random(f"{state['run_id']}:day:{state['day']}:product")
         prior = state["product"]
-        velocity = _clamp(prior["velocity"] + (avg_output - 55) // 8 - max(0, avg_burnout - 65) // 10 + rng.randint(-3, 3))
-        error_rate = _clamp(prior["error_rate"] + (55 - avg_quality) // 7 + max(0, avg_burnout - 55) // 10 + rng.randint(-2, 3))
-        alignment = _clamp(prior["alignment"] + (avg_purpose - 55) // 8 + (avg_trust - 50) // 12 + rng.randint(-2, 2))
+        event_pressure = self._world_event_pressure(state)
+        velocity = _clamp(prior["velocity"] + (avg_output - 55) // 8 - max(0, avg_burnout - 65) // 10 - event_pressure // 8 + rng.randint(-3, 3))
+        error_rate = _clamp(prior["error_rate"] + (55 - avg_quality) // 7 + max(0, avg_burnout - 55) // 10 + event_pressure // 10 + rng.randint(-2, 3))
+        alignment = _clamp(prior["alignment"] + (avg_purpose - 55) // 8 + (avg_trust - 50) // 12 - event_pressure // 12 + rng.randint(-2, 2))
         total_value = _clamp(prior["total_value"] + (velocity - 50) // 8 + (alignment - 50) // 10 - error_rate // 20 + rng.randint(-2, 3))
         return {"velocity": velocity, "error_rate": error_rate, "alignment": alignment, "total_value": total_value}
 

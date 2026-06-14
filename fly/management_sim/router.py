@@ -87,6 +87,10 @@ class AdvanceRequest(BaseModel):
     expected_day: int
 
 
+class InvestigateArtifactRequest(BaseModel):
+    artifact_id: str
+
+
 def _require_user(session_token: str | None) -> dict:
     user = auth.current_user(session_token)
     if not user:
@@ -138,6 +142,15 @@ async def action(req: ActionRequest, simulacrum_session: str | None = Cookie(Non
     user = _require_user(simulacrum_session)
     try:
         return {"run": service.apply_manager_action(user["id"], req.persona_id, req.action, req.rationale)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/investigate")
+async def investigate(req: InvestigateArtifactRequest, simulacrum_session: str | None = Cookie(None)):
+    user = _require_user(simulacrum_session)
+    try:
+        return {"run": service.investigate_artifact(user["id"], req.artifact_id)}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
 
@@ -16,6 +17,7 @@ from . import persistence
 
 DEFAULT_MODEL = os.environ.get("MANAGEMENT_SIM_MODEL", "claude-sonnet-4-5")
 TURN_LIMIT = 6
+logger = logging.getLogger(__name__)
 
 
 class PersonaActor:
@@ -59,6 +61,7 @@ class PersonaActor:
             text = getattr(first, "text", None)
             return text.strip() if text else None
         except Exception:
+            logger.warning("management simulator persona generation failed; using fallback", exc_info=True)
             return None
 
     def report(self, persona: PersonaDefinition, state: HiddenState, scenario: dict[str, Any] | None = None) -> str:

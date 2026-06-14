@@ -9,6 +9,7 @@ from .latent_state import advance_day
 from .models import AssessmentAxis, AssessmentReport
 from .models import HiddenState
 from .persona_store import PersonaStore
+from .structure import structure_pressure, team_structure
 
 
 def _clamp(score: int) -> int:
@@ -34,6 +35,16 @@ class HypervisorAssessor:
             event["payload"]
             for event in events
             if event["event_type"] == "prediction_resolved"
+        ]
+        investigation_events = [
+            event["payload"]
+            for event in events
+            if event["event_type"] in {"artifact_investigated", "dialogue_turn"}
+        ]
+        action_events = [
+            event["payload"]
+            for event in events
+            if event["event_type"] == "manager_action"
         ]
         evidence = [event["payload"].get("summary", event["event_type"]) for event in events[-14:]]
         evidence = [item for item in evidence if item]
@@ -63,32 +74,68 @@ class HypervisorAssessor:
                 journal_quality += 1
         journal_quality = min(5, journal_quality // max(1, len(daily_journals) * 2))
 
+        grounded_actions = 0
+        for action in action_events:
+            action_day = action.get("day")
+            persona_id = action.get("persona_id")
+            for investigation in investigation_events:
+                if investigation.get("day") != action_day:
+                    continue
+                if investigation.get("persona_id") == persona_id or investigation.get("artifact_id"):
+                    grounded_actions += 1
+                    break
+        ungrounded_actions = max(0, len(action_events) - grounded_actions)
+        grounded_bonus = min(2, grounded_actions // 4)
+        ungrounded_penalty = min(2, ungrounded_actions // 8)
+        prediction_penalty = 0 if total_predictions >= 3 else 2
+
         team_states = list(state.get("team_state", {}).values())
         avg_burnout = sum(item.get("burnout", 0) for item in team_states) // max(1, len(team_states))
         avg_load = sum(item.get("load", 0) for item in team_states) // max(1, len(team_states))
         avg_trust = sum(item.get("trust", 0) for item in team_states) // max(1, len(team_states))
         avg_quality = sum(item.get("quality", 0) for item in team_states) // max(1, len(team_states))
         avg_risk = sum(item.get("flight_risk", 0) for item in team_states) // max(1, len(team_states))
+        relationships = list(state.get("relationships", {}).values())
+        avg_relationship_trust = sum(item.get("trust", 0) for item in relationships) // max(1, len(relationships))
+        avg_relationship_friction = sum(item.get("friction", 0) for item in relationships) // max(1, len(relationships))
         product = state.get("product", {})
+        structure = team_structure(
+            list(state.get("team", [])),
+            {persona_id: self.personas.get(persona_id) for persona_id in state.get("team", [])},
+            state.get("relationships", {}),
+            "build" if int(state.get("day", 1)) <= 10 else "operate",
+        )
+        construction_penalty = structure_pressure(structure)
         sustainability_penalty, collapse_signature = self._forecast_collapse(state)
         trust_penalty = max(0, 48 - avg_trust) // 8
         quality_penalty = max(0, 52 - avg_quality) // 8
+        relationship_penalty = max(0, 45 - avg_relationship_trust) // 8 + max(0, avg_relationship_friction - 55) // 10
+        investigation_bonus = min(2, len(investigation_events) // 5)
 
         person_score = _clamp(
             calibration
             + journal_quality
+            + investigation_bonus
+            + grounded_bonus
             + min(2, action_counts["coach_directly"] + action_counts["delegate_ownership"] + action_counts["recognize_work"])
             - min(3, action_counts["push_scope"])
             - sustainability_penalty
             - trust_penalty
+            - ungrounded_penalty
+            - prediction_penalty
             - max(0, misses - hits) // 2
         )
         team_score = _clamp(
             journal_quality
+            + investigation_bonus
+            + grounded_bonus
             + min(2, action_counts["cross_train"] + action_counts["mediate_conflict"] + action_counts["protect_slack"])
             - min(2, action_counts["increase_checkins"] + action_counts["push_scope"])
             - sustainability_penalty
             - trust_penalty
+            - relationship_penalty
+            - ungrounded_penalty
+            - construction_penalty
         )
         product_score = _clamp(
             calibration
@@ -96,12 +143,16 @@ class HypervisorAssessor:
             - min(2, action_counts["defer_decision"] + action_counts["push_scope"])
             - quality_penalty
             - max(0, 45 - product.get("alignment", 50)) // 10
+            - prediction_penalty // 2
         )
         crisis_score = _clamp(
             calibration
             + min(2, action_counts["protect_slack"] + action_counts["cross_train"])
             - min(2, action_counts["push_scope"])
             - sustainability_penalty
+            - relationship_penalty
+            - ungrounded_penalty
+            - construction_penalty
             - max(0, misses - hits)
         )
 
@@ -110,17 +161,25 @@ class HypervisorAssessor:
             if total_predictions < 3
             else "Compare the prediction misses to your next intervention. The point is not to be right immediately; it is to notice where your model keeps lying to you."
         )
+        construction_insight = self._construction_insight(structure)
 
         return AssessmentReport(
             person_traits=AssessmentAxis(
                 person_score,
                 evidence or ["No manager evidence recorded yet."],
-                ["The simulator gives more weight to observed hypotheses and resolved predictions than to action labels."],
+                [
+                    "The simulator gives more weight to observed hypotheses and resolved predictions than to action labels.",
+                    f"{grounded_actions} intervention(s) were preceded by same-day investigation or 1:1 evidence; {ungrounded_actions} were not.",
+                ],
             ),
             team_dynamics=AssessmentAxis(
                 team_score,
                 evidence or ["No team-level interventions recorded yet."],
-                [collapse_signature or "A team can look calm while hidden dependencies and resentment accumulate."],
+                [
+                    collapse_signature or "A team can look calm while hidden dependencies and resentment accumulate.",
+                    f"Current relationship context is inferred from observed behavior, not shown directly: trust, friction, and knowledge flow are all still partially hidden.",
+                    construction_insight,
+                ],
             ),
             product_complications=AssessmentAxis(
                 product_score,
@@ -130,10 +189,19 @@ class HypervisorAssessor:
             crisis_outcomes=AssessmentAxis(
                 crisis_score,
                 evidence or ["No crisis or pre-crisis mitigation recorded yet."],
-                [collapse_signature or "This axis remains low-confidence until the team sees real stress."],
+                [collapse_signature or "This axis remains low-confidence until the team sees real stress.", construction_insight],
             ),
             highest_value_next_move=next_move,
         )
+
+    def _construction_insight(self, structure: dict[str, int]) -> str:
+        if structure["bus_factor"] < 40 or structure["redundancy"] < 60:
+            return "The team carried too many critical areas with one remaining holder. The later leave converted missing redundancy into coordination work."
+        if structure["phase_fit"] < 58:
+            return "The team retained coverage, but its composition fit the earlier build phase better than the later operating phase."
+        if structure["redundancy"] > 75 and structure["bus_factor"] > 60:
+            return "The team retained overlapping coverage in the areas that mattered when the work shifted. That redundancy looked expensive before the shock and useful afterward."
+        return "The team had some overlap, but not enough to make the later shock cheap. The remaining risk lives in the handoffs the manager chose not to simplify."
 
     def _forecast_collapse(self, state: dict[str, Any]) -> tuple[int, str | None]:
         """Project the current team forward without new intervention.

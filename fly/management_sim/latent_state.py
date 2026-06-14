@@ -128,6 +128,7 @@ def advance_day(
     seed: str,
     team_context: dict[str, int] | None = None,
     product_pressure: int = 55,
+    relationship_context: dict[str, int] | None = None,
 ) -> HiddenState:
     """Run one simulated work interval after the manager leaves the room.
 
@@ -145,6 +146,11 @@ def advance_day(
     team_morale = context.get("avg_morale", state.morale)
     team_trust = context.get("avg_trust", state.trust)
     team_output = context.get("avg_output", state.output)
+    relationship = relationship_context or {}
+    relationship_trust = relationship.get("relationship_trust", 55)
+    relationship_friction = relationship.get("relationship_friction", 30)
+    dependency_load = relationship.get("dependency_load", 25)
+    knowledge_flow = relationship.get("knowledge_flow", 45)
 
     traits = persona.hidden["traits"]
     energy = persona.hidden["energy"]
@@ -154,29 +160,31 @@ def advance_day(
     team_overload = max(0, team_load - 62)
     ambiguity_penalty = max(0, 65 - traits["ambiguity_tolerance"]) // 10
     friction_pressure = max(0, overload + team_overload + product_pressure - friction["tolerance"])
-    recovery = max(0, alignment - 55) // 10 + max(0, energy["resilience"] - 50) // 15
+    recovery = max(0, alignment - 52) // 10 + max(0, energy["resilience"] - 48) // 12
 
     next_state.load = _clamp(
         state.load
-        + 2
-        + max(0, product_pressure - 55) // 8
-        + team_overload // 8
+        + 0
+        + max(0, product_pressure - 60) // 10
+        + team_overload // 10
+        + max(0, dependency_load - 50) // 12
         + ambiguity_penalty
-        + rng.randint(-3, 4)
+        + rng.randint(-3, 3)
     )
     next_state.battery = _clamp(
         state.battery
-        - max(2, next_state.load // 16)
-        - friction_pressure // 12
+        - max(1, next_state.load // 20)
+        - friction_pressure // 16
         + recovery
-        + rng.randint(-3, 2)
+        + rng.randint(-2, 3)
     )
     next_state.burnout = _clamp(
         state.burnout
-        + friction_pressure // 7
-        + max(0, 55 - next_state.battery) // 10
+        + friction_pressure // 9
+        + max(0, relationship_friction - 48) // 10
+        + max(0, 50 - next_state.battery) // 14
         - recovery // 2
-        + rng.randint(-1, 3)
+        + rng.randint(-1, 2)
     )
     next_state.atrophy = _clamp(
         state.atrophy
@@ -188,6 +196,7 @@ def advance_day(
         state.trust
         + max(-3, min(3, (state.manager_assessment - 50) // 12))
         + max(-2, min(2, (team_trust - 50) // 18))
+        + max(-2, min(3, (relationship_trust - 50) // 12))
         - max(0, next_state.burnout - 70) // 10
         + rng.randint(-2, 2)
     )
@@ -195,6 +204,7 @@ def advance_day(
         state.morale
         + max(-4, min(5, (alignment - 55) // 8))
         + max(-2, min(2, (team_morale - 55) // 20))
+        + max(-2, min(2, (knowledge_flow - 45) // 16))
         - max(0, next_state.burnout - 55) // 8
         + rng.randint(-3, 2)
     )
@@ -204,6 +214,7 @@ def advance_day(
         + alignment // 3
         + next_state.battery // 5
         + max(0, team_output - 55) // 8
+        + max(-3, min(3, (knowledge_flow - 45) // 12))
         - next_state.burnout // 3
         - next_state.load // 6
         + rng.randint(-8, 8)
@@ -213,6 +224,7 @@ def advance_day(
         + traits["reliability"] // 2
         + persona.skills.get("quality", 60) // 3
         + next_state.battery // 8
+        + max(-2, min(2, (relationship_trust - 50) // 18))
         - next_state.burnout // 4
         - max(0, next_state.load - 70) // 3
         + rng.randint(-6, 6)
