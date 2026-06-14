@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / "fly"))
 
 import db  # noqa: E402
 from management_sim.guard import InputGuard, OutputAuditor  # noqa: E402
+from management_sim.artifacts import ArtifactService  # noqa: E402
 from management_sim.assessor import HypervisorAssessor  # noqa: E402
 from management_sim.latent_state import apply_action, initial_state  # noqa: E402
 from management_sim.relationships import relationship_context  # noqa: E402
@@ -60,6 +61,20 @@ class ManagementSimTests(unittest.TestCase):
         self.assertIn(state["scenario"]["id"], {scenario["id"] for scenario in SCENARIOS})
         self.assertEqual(state["mission"], state["scenario"]["mission"])
         self.assertEqual(state["budget_cents"], HEADCOUNT_BUDGET_CENTS)
+
+    def test_stub_reports_do_not_call_model(self):
+        class RaisingActor:
+            def _fallback_report(self, persona, state, brief=""):
+                return f"{persona.name}: stub report"
+
+            def report(self, persona, state, scenario=None):
+                raise AssertionError("model report should not be called for stubs")
+
+        run = ManagementSimService().create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        persona = PersonaStore().get("maya")
+        hidden = initial_state(persona)
+        artifact = ArtifactService(actor=RaisingActor()).generate_report(run["run_id"], persona, hidden, use_stub=True)
+        self.assertIn("stub report", artifact["report_text"])
 
     def test_guard_rejects_hidden_state_probes(self):
         guard = InputGuard()

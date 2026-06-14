@@ -112,9 +112,16 @@ class ArtifactService:
         self.guard = guard or InputGuard()
         self.auditor = auditor or OutputAuditor()
 
-    def generate_report(self, run_id: str, persona: PersonaDefinition, state: HiddenState, scenario: dict[str, Any] | None = None) -> dict[str, Any]:
-        raw = self.actor.report(persona, state, scenario)
+    def generate_report(
+        self,
+        run_id: str,
+        persona: PersonaDefinition,
+        state: HiddenState,
+        scenario: dict[str, Any] | None = None,
+        use_stub: bool = False,
+    ) -> dict[str, Any]:
         fallback = self.actor._fallback_report(persona, state, (scenario or {}).get("brief", ""))
+        raw = fallback if use_stub else self.actor.report(persona, state, scenario)
         audited = self.auditor.audit(raw, fallback)
         digest = state_hash(state)
         persistence.save_artifact(run_id, persona.id, state.week, audited.text, persistence.hash_text(audited.text), digest)

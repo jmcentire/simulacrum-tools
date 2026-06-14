@@ -283,7 +283,7 @@ async def sign_in_page(simulacrum_session: Optional[str] = Cookie(None)):
           <input type="email" name="email" placeholder="you@example.com" required autofocus>
           <button type="submit">Send magic link</button>
         </form>
-        <p>Need access? Contact <a href="mailto:hello@simulacrum.tools">hello@simulacrum.tools</a>.</p>
+        <p>Need access? <a href="/sign-up">Create an account with an invite code</a>, or contact <a href="mailto:hello@simulacrum.tools">hello@simulacrum.tools</a>.</p>
         """,
     )
 

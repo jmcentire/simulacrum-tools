@@ -77,12 +77,21 @@
           <p id="error" class="error"></p>
         </div>`;
       document.getElementById('start').onclick = async () => {
+        const button = document.getElementById('start');
+        const error = document.getElementById('error');
+        button.disabled = true;
+        button.textContent = 'Starting scenario...';
+        error.textContent = '';
         try {
           const data = await api('/api/management-sim/start', { method:'POST' });
           run = data.run;
           await loadWeek();
           render();
-        } catch (err) { document.getElementById('error').textContent = err.message; }
+        } catch (err) {
+          button.disabled = false;
+          button.textContent = 'Start random scenario';
+          error.textContent = err.message;
+        }
       };
     }
 

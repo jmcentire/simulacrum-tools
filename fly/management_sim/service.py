@@ -787,7 +787,10 @@ class ManagementSimService:
             hidden = HiddenState(**state["team_state"][persona_id])
             digest = state_hash(hidden)
             persistence.save_snapshot(state["run_id"], hidden, digest)
-            self.artifacts.generate_report(state["run_id"], persona, hidden, plan)
+            # Reports are the first thing the participant sees after starting
+            # or advancing a day. Keep that path deterministic and immediate;
+            # the model is reserved for interactive 1:1 dialogue.
+            self.artifacts.generate_report(state["run_id"], persona, hidden, plan, use_stub=True)
             persistence.append_event(
                 state["run_id"],
                 user_id,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, Cookie, HTTPException
 from pydantic import BaseModel, Field
 
@@ -124,7 +126,7 @@ async def week(simulacrum_session: str | None = Cookie(None)):
 async def dialogue(persona_id: str, req: DialogueRequest, simulacrum_session: str | None = Cookie(None)):
     user = _require_user(simulacrum_session)
     try:
-        return service.send_message(user["id"], persona_id, req.message)
+        return await asyncio.to_thread(service.send_message, user["id"], persona_id, req.message)
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc))
     except ValueError as exc:
