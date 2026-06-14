@@ -554,6 +554,8 @@ class ManagementSimService:
             state["team_state"],
             self._persona_map(state["team"]),
             state["day_actions"],
+            state["run_id"],
+            state["day"],
         )
         state["day"] += 1
         state["week"] = week_for_day(state["day"])
@@ -1079,7 +1081,7 @@ class ManagementSimService:
             state["product"]["alignment"] = _clamp(state["product"]["alignment"] - 10 - severity)
             state["product"]["velocity"] = _clamp(state["product"]["velocity"] - severity)
             state["product_pressure"] = _clamp(state["product_pressure"] + 7 + severity)
-        if state["day"] == 16 and not any(event["kind"] == "dependency_leave" for event in state["world_events"]):
+        if state["day"] == 16 and state["team"] and not any(event["kind"] == "dependency_leave" for event in state["world_events"]):
             affected_persona_id = self._dependency_hotspot(state)
             affected_persona = self.personas.get(affected_persona_id)
             structure = self._team_structure(state)

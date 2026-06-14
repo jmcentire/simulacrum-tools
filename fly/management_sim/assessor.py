@@ -51,8 +51,7 @@ class HypervisorAssessor:
             for event in events
             if event["event_type"] == "voluntary_exit"
         ]
-        evidence = [event["payload"].get("summary", event["event_type"]) for event in events[-14:]]
-        evidence = [item for item in evidence if item]
+        evidence = self._high_signal_evidence(events)
 
         total_predictions = len(prediction_events)
         hits = sum(1 for item in prediction_events if item.get("hit"))
@@ -230,6 +229,78 @@ class HypervisorAssessor:
         if structure["redundancy"] > 75 and structure["bus_factor"] > 60:
             return "The team retained overlapping coverage in the areas that mattered when the work shifted. That redundancy looked expensive before the shock and useful afterward."
         return "The team had some overlap, but not enough to make the later shock cheap. The remaining risk lives in the handoffs the manager chose not to simplify."
+
+    def _high_signal_evidence(self, events: list[dict[str, Any]]) -> list[str]:
+        """Prefer causal evidence over whatever happened to occur last.
+
+        Daily journals and world ticks are useful for auditability, but they
+        are not the reason a manager scored well or poorly. The report should
+        lead with decisions and consequences: hires, cuts, interventions,
+        missed predictions, and attrition.
+        """
+        candidates: list[tuple[int, int, str]] = []
+        for index, event in enumerate(events):
+            event_type = event["event_type"]
+            payload = event["payload"]
+            summary = self._evidence_summary(event_type, payload)
+            if not summary:
+                continue
+            priority = self._evidence_priority(event_type, payload)
+            if priority:
+                candidates.append((priority, index, summary))
+
+        candidates.sort(key=lambda item: (-item[0], -item[1]))
+        selected: list[str] = []
+        seen: set[str] = set()
+        for _priority, _index, summary in candidates:
+            if summary in seen:
+                continue
+            selected.append(summary)
+            seen.add(summary)
+            if len(selected) == 6:
+                break
+        return selected
+
+    def _evidence_priority(self, event_type: str, payload: dict[str, Any]) -> int:
+        if event_type == "voluntary_exit":
+            return 100
+        if event_type in {"hire_selected", "terminations_selected", "backfill_selected"}:
+            return 85
+        if event_type == "manager_action":
+            action = payload.get("action", "")
+            if action in {"push_scope", "increase_checkins", "assign_maintenance"}:
+                return 82
+            if action in {"protect_slack", "cross_train", "delegate_ownership", "coach_directly", "clarify_scope"}:
+                return 76
+            return 60
+        if event_type == "prediction_resolved" and not payload.get("hit"):
+            return 68
+        if event_type == "prediction_resolved":
+            return 45
+        if event_type in {"artifact_investigated", "dialogue_turn"}:
+            return 35
+        return 0
+
+    def _evidence_summary(self, event_type: str, payload: dict[str, Any]) -> str | None:
+        if event_type == "voluntary_exit":
+            cause = payload.get("cause", "unknown")
+            reason = payload.get("reason", "unknown")
+            return f"{payload.get('persona_id', 'A team member')} left: {cause} / {reason}."
+        if event_type == "hire_selected":
+            return f"Hired {payload.get('candidate_id', 'a candidate')}."
+        if event_type == "terminations_selected":
+            people = ", ".join(payload.get("persona_ids", []))
+            return f"Selected terminations for {people}."
+        if event_type == "backfill_selected":
+            candidate = payload.get("candidate_id")
+            return f"Selected backfill {candidate}." if candidate else "Declined the backfill slot."
+        if event_type == "manager_action":
+            return payload.get("summary")
+        if event_type == "prediction_resolved":
+            return payload.get("summary")
+        if event_type in {"artifact_investigated", "dialogue_turn"}:
+            return payload.get("summary")
+        return None
 
     def _forecast_collapse(self, state: dict[str, Any]) -> tuple[int, str | None]:
         """Project the current team forward without new intervention.

@@ -10,11 +10,17 @@ sys.path.insert(0, str(ROOT / "fly"))
 
 import db  # noqa: E402
 from management_sim.guard import InputGuard, OutputAuditor  # noqa: E402
+from management_sim.assessor import HypervisorAssessor  # noqa: E402
 from management_sim.latent_state import apply_action, initial_state  # noqa: E402
 from management_sim.relationships import relationship_context  # noqa: E402
 from management_sim.relationships import initial_relationships  # noqa: E402
 from management_sim.persona_store import PersonaStore  # noqa: E402
-from management_sim.retention import advance_retention_watch, choose_voluntary_exit, initial_retention_watch  # noqa: E402
+from management_sim.retention import (  # noqa: E402
+    _external_exit_probability,
+    advance_retention_watch,
+    choose_voluntary_exit,
+    initial_retention_watch,
+)
 from management_sim.service import ManagementSimService  # noqa: E402
 from management_sim.structure import team_structure  # noqa: E402
 from management_sim.work import advance_workstreams, initial_workstreams  # noqa: E402
@@ -424,6 +430,36 @@ class ManagementSimTests(unittest.TestCase):
         self.assertEqual(exit_decision["cause"], "preventable")
         self.assertEqual(exit_decision["reason"], "micromanagement")
 
+    def test_outside_offer_has_response_window_and_can_be_retained(self):
+        persona = PersonaStore().get("maya")
+        state = initial_state(persona)
+        state.output = 78
+        state.trust = 68
+        state.morale = 66
+        watch = initial_retention_watch(["maya"])
+        watch["maya"]["outside_offer_active"] = True
+        watch["maya"]["outside_offer_days"] = 1
+
+        watch, _warnings = advance_retention_watch(
+            watch,
+            {"maya": state.to_dict()},
+            {"maya": persona},
+            [],
+        )
+        self.assertEqual(watch["maya"]["outside_offer_days"], 2)
+        self.assertGreater(_external_exit_probability(15, persona, state, watch["maya"]), 0)
+
+        watch["maya"]["outside_offer_active"] = True
+        watch["maya"]["outside_offer_days"] = 0
+        watch, _warnings = advance_retention_watch(
+            watch,
+            {"maya": state.to_dict()},
+            {"maya": persona},
+            [{"persona_id": "maya", "action": "delegate_ownership"}],
+        )
+        self.assertFalse(watch["maya"]["outside_offer_active"])
+        self.assertEqual(watch["maya"]["outside_offer_days"], 0)
+
     def test_service_applies_voluntary_exit_and_records_event(self):
         service = ManagementSimService()
         state = service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
@@ -446,6 +482,29 @@ class ManagementSimTests(unittest.TestCase):
         self.assertTrue(any(event["kind"] == "voluntary_exit" for event in state["world_events"]))
         events = persistence.list_events(state["run_id"], "user-1")
         self.assertEqual(len([event for event in events if event["event_type"] == "voluntary_exit"]), 1)
+
+    def test_empty_team_does_not_crash_dependency_leave_event(self):
+        service = ManagementSimService()
+        state = service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        state["day"] = 16
+        state["team"] = []
+        state["team_state"] = {}
+        state["relationships"] = {}
+        service._seed_discontinuities(state)
+        self.assertFalse(any(event["kind"] == "dependency_leave" for event in state["world_events"]))
+
+    def test_assessor_prefers_causal_evidence_over_latest_journal(self):
+        evidence = HypervisorAssessor()._high_signal_evidence(
+            [
+                {"event_type": "daily_report_submitted", "payload": {"summary": "The manager wrote a report."}},
+                {"event_type": "manager_action", "payload": {"action": "push_scope", "summary": "push_scope applied to Maya Patel."}},
+                {"event_type": "voluntary_exit", "payload": {"persona_id": "maya", "cause": "preventable", "reason": "overload"}},
+                {"event_type": "day_advanced", "payload": {"summary": "Advanced to participant day 18 after the team ran for a simulated week."}},
+            ]
+        )
+        self.assertEqual(evidence[0], "maya left: preventable / overload.")
+        self.assertIn("push_scope applied to Maya Patel.", evidence)
+        self.assertNotIn("The manager wrote a report.", evidence)
 
     def test_owner_departure_creates_handoff_debt_not_permanent_done_work_block(self):
         personas = {persona.id: persona for persona in PersonaStore().load_all()}

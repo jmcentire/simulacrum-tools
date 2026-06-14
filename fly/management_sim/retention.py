@@ -19,6 +19,20 @@ PROBABILITY_THRESHOLD = 5
 # Eight ticks means the person has been under the same bad pattern long enough
 # that staying would be less realistic than leaving.
 FORCED_THRESHOLD = 8
+# External offers are not meant to be a lottery. They arrive as a subtle
+# retention signal, remain open for a short response window, and then turn
+# into an exit only if the manager does not respond or cannot make the work
+# compelling enough to keep the person.
+OUTSIDE_OFFER_MIN_DAY = 12
+OUTSIDE_OFFER_RESPONSE_WINDOW = 2
+OUTSIDE_OFFER_COOLDOWN = 4
+RETENTION_RESPONSE_ACTIONS = {
+    "recognize_work",
+    "delegate_ownership",
+    "coach_directly",
+    "protect_slack",
+    "clarify_scope",
+}
 
 
 def initial_retention_watch(team: list[str]) -> dict[str, dict[str, Any]]:
@@ -29,7 +43,7 @@ def ensure_retention_watch(
     watch: dict[str, dict[str, Any]],
     team: list[str],
 ) -> dict[str, dict[str, Any]]:
-    next_watch = {persona_id: dict(values) for persona_id, values in watch.items() if persona_id in team}
+    next_watch = {persona_id: _normalized_record(values) for persona_id, values in watch.items() if persona_id in team}
     for persona_id in team:
         next_watch.setdefault(persona_id, _blank_watch())
     return next_watch
@@ -40,6 +54,8 @@ def advance_retention_watch(
     team_state: dict[str, dict[str, Any]],
     personas: dict[str, PersonaDefinition],
     day_actions: list[dict[str, str]],
+    run_id: str | None = None,
+    day: int | None = None,
 ) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
     next_watch = ensure_retention_watch(watch, list(team_state))
     actions_by_persona: dict[str, list[str]] = {}
@@ -47,6 +63,7 @@ def advance_retention_watch(
         actions_by_persona.setdefault(action["persona_id"], []).append(action["action"])
 
     warnings: list[dict[str, Any]] = []
+    outside_offer_slot_used = any(record["outside_offer_active"] for record in next_watch.values())
     for persona_id, raw in team_state.items():
         persona = personas[persona_id]
         state = HiddenState(**raw)
@@ -88,6 +105,26 @@ def advance_retention_watch(
                     "detail": _warning_detail(persona.name, reason),
                 }
             )
+
+        _advance_outside_offer(
+            record,
+            persona,
+            state,
+            actions,
+            run_id,
+            day,
+            outside_offer_slot_used,
+        )
+        if record["outside_offer_active"] and not outside_offer_slot_used:
+            outside_offer_slot_used = True
+            warnings.append(
+                {
+                    "persona_id": persona_id,
+                    "reason": "outside_offer",
+                    "title": _outside_offer_title(persona.name),
+                    "detail": _outside_offer_detail(persona.name),
+                }
+            )
     return next_watch, warnings
 
 
@@ -105,7 +142,7 @@ def choose_voluntary_exit(
     for persona_id, raw in team_state.items():
         persona = personas[persona_id]
         state = HiddenState(**raw)
-        record = watch.get(persona_id, _blank_watch())
+        record = _normalized_record(watch.get(persona_id, _blank_watch()))
         preventable_probability = _preventable_exit_probability(state, record)
         external_probability = _external_exit_probability(day, persona, state, record)
         if preventable_probability:
@@ -201,12 +238,76 @@ def _external_exit_probability(
     state: HiddenState,
     record: dict[str, Any],
 ) -> int:
-    if day < 13 or record["pressure_days"] >= PROBABILITY_THRESHOLD:
+    if (
+        day < MIN_EXIT_DAY
+        or not record["outside_offer_active"]
+        or record["outside_offer_days"] < OUTSIDE_OFFER_RESPONSE_WINDOW
+        or record["pressure_days"] >= PROBABILITY_THRESHOLD
+    ):
         return 0
     skill_signal = sum(persona.skills.values()) // max(1, len(persona.skills))
-    if skill_signal < 74 or state.output < 52:
+    probability = 24 + record["outside_offer_days"] * 8
+    probability += max(0, skill_signal - 78) // 5
+    probability += max(0, state.output - 65) // 8
+    probability -= record["outside_offer_response_strength"] * 12
+    return max(0, min(72, probability))
+
+
+def _advance_outside_offer(
+    record: dict[str, Any],
+    persona: PersonaDefinition,
+    state: HiddenState,
+    actions: list[str],
+    run_id: str | None,
+    day: int | None,
+    outside_offer_slot_used: bool,
+) -> None:
+    if record["outside_offer_active"]:
+        record["outside_offer_days"] += 1
+        response_strength = sum(1 for action in actions if action in RETENTION_RESPONSE_ACTIONS)
+        if response_strength:
+            record["outside_offer_response_strength"] += response_strength
+            if (
+                record["outside_offer_response_strength"] >= 2
+                or (record["outside_offer_response_strength"] >= 1 and state.trust >= 55 and state.morale >= 55)
+            ):
+                record["outside_offer_active"] = False
+                record["outside_offer_days"] = 0
+                record["outside_offer_response_strength"] = 0
+                record["outside_offer_cooldown"] = OUTSIDE_OFFER_COOLDOWN
+        return
+
+    record["outside_offer_days"] = 0
+    record["outside_offer_response_strength"] = 0
+    record["outside_offer_cooldown"] = max(0, record["outside_offer_cooldown"] - 1)
+    if outside_offer_slot_used or run_id is None or day is None:
+        return
+    probability = _outside_offer_arrival_probability(day, persona, state, record)
+    if not probability:
+        return
+    rng = random.Random(f"{run_id}:day:{day}:offer:{persona.id}")
+    if rng.randint(1, 100) <= probability:
+        record["outside_offer_active"] = True
+        record["outside_offer_days"] = 0
+
+
+def _outside_offer_arrival_probability(
+    day: int,
+    persona: PersonaDefinition,
+    state: HiddenState,
+    record: dict[str, Any],
+) -> int:
+    if (
+        day < OUTSIDE_OFFER_MIN_DAY
+        or record["outside_offer_cooldown"] > 0
+        or record["pressure_days"] >= PROBABILITY_THRESHOLD
+        or state.flight_risk > 58
+    ):
         return 0
-    return min(8, 2 + max(0, skill_signal - 78) // 8 + max(0, state.output - 65) // 10)
+    skill_signal = sum(persona.skills.values()) // max(1, len(persona.skills))
+    if skill_signal < 78 or state.output < 60:
+        return 0
+    return min(4, 1 + max(0, skill_signal - 80) // 8 + max(0, state.output - 68) // 16)
 
 
 def _warning_title(name: str, reason: str) -> str:
@@ -233,6 +334,17 @@ def _warning_detail(name: str, reason: str) -> str:
     return f"{name} has stopped volunteering context and seems less interested in long-term planning."
 
 
+def _outside_offer_title(name: str) -> str:
+    return f"{name} asked what the next six months could look like before taking on another large initiative."
+
+
+def _outside_offer_detail(name: str) -> str:
+    return (
+        f"{name} seemed less interested in the immediate task list and more interested in whether there is room "
+        "here to own something that matters. They did not say they were leaving."
+    )
+
+
 def _blank_watch() -> dict[str, Any]:
     return {
         "pressure_days": 0,
@@ -242,4 +354,14 @@ def _blank_watch() -> dict[str, Any]:
         "trust_loss_days": 0,
         "last_reason": "",
         "last_pressure": 0,
+        "outside_offer_active": False,
+        "outside_offer_days": 0,
+        "outside_offer_response_strength": 0,
+        "outside_offer_cooldown": 0,
     }
+
+
+def _normalized_record(record: dict[str, Any]) -> dict[str, Any]:
+    normalized = _blank_watch()
+    normalized.update(record)
+    return normalized
