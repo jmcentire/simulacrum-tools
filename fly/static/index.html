@@ -47,10 +47,13 @@
     h1 { margin: 0; font-size: 16px; font-weight: 500; }
     .meta { font-size: 12px; color: var(--subtle); flex: 1; }
     .meta a { color: var(--subtle); margin-left: 12px; }
-    .theme-toggle { background: transparent; color: var(--subtle); border: 1px solid var(--border-input);
-                    border-radius: 4px; padding: 4px 10px; font: inherit; font-size: 12px;
-                    cursor: pointer; flex: 0 0 auto; }
-    .theme-toggle:hover { color: var(--text); border-color: var(--text); }
+    .segmented { display: flex; border: 1px solid var(--border-input); border-radius: 4px; overflow: hidden;
+                 flex: 0 0 auto; }
+    .segmented button { background: transparent; color: var(--subtle); border: 0; border-radius: 0;
+                        padding: 4px 8px; font: inherit; font-size: 12px; font-weight: 400; }
+    .segmented button + button { border-left: 1px solid var(--border-input); }
+    .segmented button:hover { color: var(--text); }
+    .segmented button.active { background: var(--accent); color: var(--accent-text); font-weight: 600; }
     #chat { flex: 1; overflow-y: auto; padding: 24px; max-width: 880px;
             margin: 0 auto; width: 100%; }
     .turn { margin-bottom: 24px; }
@@ -87,15 +90,25 @@
 <body>
   <header>
     <h1>Simulacrum — Jeremy McEntire</h1>
-    <span class="meta">Pitch an idea; expect pushback when warranted. This is a simulacrum, not the person it imitates. Outputs are not professional advice.</span>
-    <button type="button" class="theme-toggle" id="spice-toggle" aria-label="Toggle spice mode" title="Switch between tuned (sharp without mean) and spicy (the original bastard)"></button>
-    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
+    <span class="meta">Pitch an idea; expect pushback when warranted. Switch to teach mode for guided professional reasoning. This is a simulacrum, not the person it imitates. Outputs are not professional advice.</span>
+    <div class="segmented" aria-label="Chat mode">
+      <button type="button" id="mode-review" data-mode="review">Review</button>
+      <button type="button" id="mode-teach" data-mode="teach">Teach</button>
+    </div>
+    <div class="segmented" aria-label="Register">
+      <button type="button" id="register-professional" data-register="professional">Professional</button>
+      <button type="button" id="register-sailor" data-register="sailor">Sailor</button>
+    </div>
+    <div class="segmented" aria-label="Theme">
+      <button type="button" id="theme-light" data-theme="light">Light</button>
+      <button type="button" id="theme-dark" data-theme="dark">Dark</button>
+    </div>
   </header>
   <div id="chat">
     <div class="empty">
       <h2>A generative simulacrum.</h2>
       <p>Built on the architecture from Park et al.'s <em>Generative Agent Simulations of 1,000 People</em> (2024) — a two-phase dispatcher routes each turn between a recall branch and an adversarial-dialog branch.</p>
-      <p>Pitch an idea, propose a frame, claim something. Tuned for sharp pushback when the framing has a flaw — and direct engagement when it doesn't.</p>
+      <p>Pitch an idea, propose a frame, claim something. Professional for sharp pushback when the framing has a flaw — and direct engagement when it doesn't.</p>
       <div class="links">
         <a href="https://arxiv.org/abs/2411.10109" target="_blank" rel="noopener">Paper</a> ·
         <a href="https://github.com/jmcentire/simulacrum" target="_blank" rel="noopener">Code</a> ·
@@ -104,7 +117,7 @@
       </div>
     </div>
   </div>
-  <p class="hint">Tip: it's specifically tuned for adversarial dialog. Direct factual recall ("what's project X?") is not its strength.</p>
+  <p class="hint">Review mode is for adversarial dialog. Teach mode is for guided professional reasoning. Direct factual recall ("what's project X?") is not its strength.</p>
   <form id="input-row">
     <textarea id="input" placeholder="Pitch an idea, propose a frame, claim something..." autofocus></textarea>
     <button type="submit" id="send">Send</button>
@@ -135,8 +148,9 @@
     const input = document.getElementById('input');
     const send = document.getElementById('send');
     const form = document.getElementById('input-row');
-    const themeToggle = document.getElementById('theme-toggle');
-    const spiceToggle = document.getElementById('spice-toggle');
+    const themeButtons = [...document.querySelectorAll('[data-theme]')];
+    const modeButtons = [...document.querySelectorAll('[data-mode]')];
+    const registerButtons = [...document.querySelectorAll('[data-register]')];
     const dialog = [];
     let turnstileWidgetId = null;
     let turnstileSiteKey = null;
@@ -171,41 +185,77 @@
     }
     loadConfig();
 
-    // Theme toggle
-    function updateThemeButton() {
+    // Theme selector
+    function getTheme() {
       const t = document.documentElement.getAttribute('data-theme');
-      themeToggle.textContent = t === 'dark' ? '☀ Light' : '☾ Dark';
+      return t === 'light' || t === 'dark' ? t : 'dark';
     }
-    updateThemeButton();
-    themeToggle.addEventListener('click', () => {
-      const cur = document.documentElement.getAttribute('data-theme');
-      const next = cur === 'dark' ? 'light' : 'dark';
+    function updateThemeButtons() {
+      const t = getTheme();
+      themeButtons.forEach((button) => {
+        const active = button.dataset.theme === t;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+    updateThemeButtons();
+    themeButtons.forEach((button) => button.addEventListener('click', () => {
+      const next = button.dataset.theme;
+      if (next === getTheme()) return;
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('simulacrum_theme', next);
-      updateThemeButton();
-    });
+      updateThemeButtons();
+    }));
 
-    // Spice toggle (tuned vs spicy/bastard mode)
-    function getSpice() {
-      const m = document.cookie.match(/(?:^|;\s*)simulacrum_spice=([^;]+)/);
-      return m ? m[1] : 'tuned';
+    // Chat mode selector (review vs teach)
+    function getMode() {
+      const current = document.cookie.match(/(?:^|;\s*)simulacrum_mode=([^;]+)/);
+      return current && (current[1] === 'review' || current[1] === 'teach')
+        ? current[1]
+        : 'review';
     }
-    function updateSpiceButton() {
-      const s = getSpice();
-      spiceToggle.textContent = s === 'spicy' ? '🌶 Spicy' : '🥛 Tuned';
-      spiceToggle.title = s === 'spicy'
-        ? 'Spicy mode: original bastard register. Click to switch to tuned (sharp without mean).'
-        : 'Tuned mode: sharp without being mean. Click to switch to spicy (the original).';
+    function updateModeButton() {
+      const m = getMode();
+      modeButtons.forEach((button) => {
+        const active = button.dataset.mode === m;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
     }
-    updateSpiceButton();
-    spiceToggle.addEventListener('click', async () => {
-      const cur = getSpice();
-      const next = cur === 'spicy' ? 'tuned' : 'spicy';
+    updateModeButton();
+    modeButtons.forEach((button) => button.addEventListener('click', async () => {
+      const next = button.dataset.mode;
+      if (next === getMode()) return;
       const fd = new FormData();
-      fd.append('spice', next);
-      const res = await fetch('/spice', { method: 'POST', body: fd, credentials: 'same-origin' });
-      if (res.ok) updateSpiceButton();
-    });
+      fd.append('mode', next);
+      const res = await fetch('/mode', { method: 'POST', body: fd, credentials: 'same-origin' });
+      if (res.ok) updateModeButton();
+    }));
+
+    // Register selector (professional vs sailor)
+    function getRegister() {
+      const current = document.cookie.match(/(?:^|;\s*)simulacrum_register=([^;]+)/);
+      return current && (current[1] === 'professional' || current[1] === 'sailor')
+        ? current[1]
+        : 'professional';
+    }
+    function updateRegisterButton() {
+      const r = getRegister();
+      registerButtons.forEach((button) => {
+        const active = button.dataset.register === r;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+    updateRegisterButton();
+    registerButtons.forEach((button) => button.addEventListener('click', async () => {
+      const next = button.dataset.register;
+      if (next === getRegister()) return;
+      const fd = new FormData();
+      fd.append('register_mode', next);
+      const res = await fetch('/register', { method: 'POST', body: fd, credentials: 'same-origin' });
+      if (res.ok) updateRegisterButton();
+    }));
 
     function render() {
       if (dialog.length === 0) return;

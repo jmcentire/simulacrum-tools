@@ -27,21 +27,27 @@ Without `OPENAI_API_KEY` + `GENERALIST_MODEL`, the dispatcher routes everything 
 | `/login` | GET / POST | none | Login form / submission |
 | `/logout` | GET | cookie | Clear session cookie |
 | `/chat` | POST | cookie | Send dialog, get response |
-| `/spice` | POST | cookie | Set tuned/spicy register cookie |
+| `/register` | POST | cookie | Set professional/sailor register cookie |
+| `/mode` | POST | cookie | Set review/teach chat mode |
 | `/healthz` | GET | none | Health + config status |
 
-## Spice modes
+## Register modes
 
 The simulacrum ships with two register profiles, swappable per-user via UI toggle:
 
-- **tuned** (default): sharp without being mean. Profanity is escalation only — reserved for sustained bad-faith engagement. First responses are measured-but-rigorous.
-- **spicy**: original v8 register. Profanity as default refusal posture. Some users want to argue with the bastard.
+- **professional** (default): sharp without being mean. Profanity is escalation only — reserved for sustained bad-faith engagement. First responses are measured-but-rigorous.
+- **sailor**: original v8 register. Profanity as default refusal posture. Some users want to argue with the bastard.
 
 Both modes preserve the cognitive moves (assumption-interrogation, architecture-review posture, etc.). Only the *register* differs.
 
+## Chat modes
+
+- **review** (default): existing Sim behavior. Push back on malformed framing, bad assumptions, and generic advice.
+- **teach**: hidden observer/planner/auditor loop for adult professional coaching. It chooses among validation, amplification, reframing, anchoring, challenge, reflection, direct answers, and backing off based on the learner's current state.
+
 ## Observability
 
-The chat response includes diagnostic fields: `phase` (GENERALIST/SPECIALIST), `agent` (specialist/generalist), `mode` (Mode-A / DEFAULT for the specialist's sub-classifier), `spice` (current register profile).
+The chat response includes diagnostic fields: `phase` (GENERALIST/SPECIALIST/TEACH), `agent` (specialist/generalist/teach), `mode` (Mode-A / DEFAULT for review, intervention type for teach), `register` (current register profile).
 
 `/healthz` returns the generalist's configured/disabled state.
 
@@ -64,7 +70,8 @@ fly/
 ├── agents/
 │   ├── dispatcher.py         # phase classifier + routing
 │   ├── specialist.py         # Anthropic + annotated few-shot + Mode-A
-│   └── generalist.py         # OpenAI fine-tune (optional)
+│   ├── generalist.py         # OpenAI fine-tune (optional)
+│   └── teach.py              # observer -> planner -> draft -> audit loop
 ├── data/
 │   └── adversarial_pairs_annotated.json    # 11 canonical few-shot pairs
 └── static/

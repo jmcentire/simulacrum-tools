@@ -77,19 +77,19 @@ class Dispatcher:
         return phase, reason
 
     def utterance(self, dialogue: list[tuple[str, str]],
-                  spice: str = "tuned") -> dict:
+                  register_mode: str = "professional") -> dict:
         last_setup = dialogue[-1][1]
         phase, reason = self._classify(last_setup)
 
         if phase == "GENERALIST" and self._generalist is not None:
-            # Generalist register is set by its own system prompt; spice toggle
+            # Generalist register is set by its own system prompt; register toggle
             # only meaningfully affects the specialist where the few-shot pool
             # is doing the register work.
             text = self._generalist.utterance(dialogue)
             return {"text": text, "phase": phase, "phase_reason": reason,
-                    "agent": "generalist", "mode": None, "spice": spice}
+                    "agent": "generalist", "mode": None, "register": register_mode}
         else:
             # SPECIALIST path, or GENERALIST-but-no-generalist-configured fallback.
-            out = self._specialist.utterance(dialogue, spice=spice)
+            out = self._specialist.utterance(dialogue, register_mode=register_mode)
             return {"text": out["text"], "phase": phase, "phase_reason": reason,
-                    "agent": "specialist", "mode": out["mode"], "spice": spice}
+                    "agent": "specialist", "mode": out["mode"], "register": register_mode}

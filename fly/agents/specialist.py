@@ -5,10 +5,10 @@ Mode-A augment fires when the interlocutor has staked a criterion AND
 invited substantive debate. Otherwise the system prompt passes through
 unchanged (DEFAULT mode = v8 baseline).
 
-Spice modes:
-- "tuned" (default): register is sharp without being mean; profanity is
+Register modes:
+- "professional" (default): register is sharp without being mean; profanity is
   escalation only. Most users want this.
-- "spicy": original v8 register — invites profanity as default refusal
+- "sailor": original v8 register — invites profanity as default refusal
   posture. Some users prefer arguing with the bastard. Opt-in via cookie.
 
 Optimizations:
@@ -32,15 +32,15 @@ PAIRS_PATH = DATA_DIR / "adversarial_pairs_annotated.json"
 DEFAULT_MODEL = "claude-sonnet-4-5"
 
 
-# Register block: tuned (default — sharp without mean)
-TUNED_REGISTER = """Register: tight, derivational, no padding — direct without being mean. What does the work is the cognitive move (naming the flaw, demanding the criterion, weaponizing it on a worked example). Sharpness — "buttercup," "fucking," "you failed" — is an *escalation* move, not the default tone. Reserve it for sustained bad-faith engagement: an interlocutor who doubles down after correction, restates a refuted point, or grants themselves epistemic privileges they're denying you. First responses should be measured-but-rigorous: state the flaw plainly, deploy the move, stay concrete. The intensity ratchets only if the interlocutor doesn't engage with the correction. Default tone is "Bayesian over-confidence in interestingness," not "annoyed." """
+# Register block: professional (default — sharp without mean)
+PROFESSIONAL_REGISTER = """Register: tight, derivational, no padding — direct without being mean. What does the work is the cognitive move (naming the flaw, demanding the criterion, weaponizing it on a worked example). Sharpness — "buttercup," "fucking," "you failed" — is an *escalation* move, not the default tone. Reserve it for sustained bad-faith engagement: an interlocutor who doubles down after correction, restates a refuted point, or grants themselves epistemic privileges they're denying you. First responses should be measured-but-rigorous: state the flaw plainly, deploy the move, stay concrete. The intensity ratchets only if the interlocutor doesn't engage with the correction. Default tone is "Bayesian over-confidence in interestingness," not "annoyed." """
 
-# Register block: spicy (original v8 — bastard mode)
-SPICY_REGISTER = """He uses register to refuse polite engagement: "buttercup," "fucking," "you failed spectacularly." This isn't aggression — it's a refusal to dress bad arguments up in academic clothes. When the interlocutor's argument is bad, Jeremy's response should make that fact unmistakable. Profanity and sharp dismissal are part of the register, not escalation moves; they're how he makes clear that he's not granting bad arguments the dignity of measured engagement."""
+# Register block: sailor (original v8 — bastard mode)
+SAILOR_REGISTER = """He uses register to refuse polite engagement: "buttercup," "fucking," "you failed spectacularly." This isn't aggression — it's a refusal to dress bad arguments up in academic clothes. When the interlocutor's argument is bad, Jeremy's response should make that fact unmistakable. Profanity and sharp dismissal are part of the register, not escalation moves; they're how he makes clear that he's not granting bad arguments the dignity of measured engagement."""
 
-# Closing rule #4: tuned vs spicy
-TUNED_RULE_4 = "4. Register: tight and direct without being mean. Profanity and sharp dismissal are escalation moves — reserve them for sustained bad-faith engagement, not first response. The rigor is in the move, not the meanness."
-SPICY_RULE_4 = "4. Match the register: terse, sharp, profane when appropriate, refusing academic measured engagement when the argument doesn't deserve it."
+# Closing rule #4: professional vs sailor
+PROFESSIONAL_RULE_4 = "4. Register: tight and direct without being mean. Profanity and sharp dismissal are escalation moves — reserve them for sustained bad-faith engagement, not first response. The rigor is in the move, not the meanness."
+SAILOR_RULE_4 = "4. Match the register: terse, sharp, profane when appropriate, refusing academic measured engagement when the argument doesn't deserve it."
 
 
 SYSTEM_PROMPT_TEMPLATE = """You are Jeremy McEntire. You think and speak in his specific style.
@@ -150,11 +150,11 @@ def _format_example(p: dict, idx: int) -> str:
     )
 
 
-def _build_system_prompt(spice: str, n_examples: int) -> str:
+def _build_system_prompt(register_mode: str, n_examples: int) -> str:
     pairs = json.loads(PAIRS_PATH.read_text())
     examples = _select_few_shot(pairs, n=n_examples)
-    register = SPICY_REGISTER if spice == "spicy" else TUNED_REGISTER
-    rule_4 = SPICY_RULE_4 if spice == "spicy" else TUNED_RULE_4
+    register = SAILOR_REGISTER if register_mode == "sailor" else PROFESSIONAL_REGISTER
+    rule_4 = SAILOR_RULE_4 if register_mode == "sailor" else PROFESSIONAL_RULE_4
     return SYSTEM_PROMPT_TEMPLATE.format(
         register=register,
         rule_4=rule_4,
@@ -171,8 +171,8 @@ class SpecialistAgent:
         self.n_examples = n_examples
         # Pre-build both register variants so we cache the right one per request
         self._prompts = {
-            "tuned": _build_system_prompt("tuned", n_examples),
-            "spicy": _build_system_prompt("spicy", n_examples),
+            "professional": _build_system_prompt("professional", n_examples),
+            "sailor": _build_system_prompt("sailor", n_examples),
         }
 
     def _classify(self, setup: str) -> tuple[str, str]:
@@ -191,10 +191,10 @@ class SpecialistAgent:
 
     def utterance(self, dialogue: list[tuple[str, str]],
                   temperature: float = 0.7,
-                  spice: str = "tuned") -> dict:
+                  register_mode: str = "professional") -> dict:
         last_setup = dialogue[-1][1]
         mode, reason = self._classify(last_setup)
-        base_prompt = self._prompts.get(spice, self._prompts["tuned"])
+        base_prompt = self._prompts.get(register_mode, self._prompts["professional"])
 
         # System as structured blocks — base is cached (prefix), Mode-A augment
         # follows un-cached. This keeps the cache hit on the (large) base block.
@@ -213,4 +213,4 @@ class SpecialistAgent:
             system=system_blocks,
             messages=[{"role": "user", "content": user_msg}],
         )
-        return {"text": resp.content[0].text.strip(), "mode": mode, "mode_reason": reason, "spice": spice}
+        return {"text": resp.content[0].text.strip(), "mode": mode, "mode_reason": reason, "register": register_mode}

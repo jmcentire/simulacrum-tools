@@ -33,6 +33,7 @@ from pydantic import BaseModel
 
 from agents.dispatcher import Dispatcher
 from agents.generalist import is_configured as generalist_configured
+from agents.teach import TeachAgent
 
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
@@ -43,7 +44,8 @@ TURNSTILE_SECRET = os.environ.get("TURNSTILE_SECRET")
 TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "")
 
 COUNTER_COOKIE = "simulacrum_counter"
-SPICE_COOKIE = "simulacrum_spice"
+REGISTER_COOKIE = "simulacrum_register"
+MODE_COOKIE = "simulacrum_mode"
 WINDOW_SECONDS = 24 * 3600
 CAP_PER_WINDOW = int(os.environ.get("CAP_PER_WINDOW", "20"))
 
@@ -51,6 +53,7 @@ if not ANTHROPIC_API_KEY:
     raise RuntimeError("ANTHROPIC_API_KEY env var required (specialist + classifier)")
 
 dispatcher = Dispatcher()
+teach = TeachAgent()
 print(f"dispatcher loaded — generalist={'enabled' if generalist_configured() else 'disabled (specialist-only)'}")
 
 
@@ -146,7 +149,8 @@ async def terms():
 @app.post("/chat")
 async def chat(req: ChatRequest,
                simulacrum_counter: Optional[str] = Cookie(None),
-               simulacrum_spice: Optional[str] = Cookie(None),
+               simulacrum_register: Optional[str] = Cookie(None),
+               simulacrum_mode: Optional[str] = Cookie(None),
                cf_connecting_ip: Optional[str] = Header(None, alias="CF-Connecting-IP")) -> JSONResponse:
     if not req.dialog:
         raise HTTPException(status_code=400, detail="empty dialog")
@@ -163,9 +167,13 @@ async def chat(req: ChatRequest,
     if not await _verify_turnstile(req.turnstile_token, cf_connecting_ip):
         raise HTTPException(status_code=403, detail="Bot check failed. Refresh and try again.")
 
-    spice = "spicy" if simulacrum_spice == "spicy" else "tuned"
+    register_mode = simulacrum_register if simulacrum_register in ("professional", "sailor") else "professional"
+    chat_mode = simulacrum_mode if simulacrum_mode in ("review", "teach") else "review"
     dialogue = [(t.role, t.text) for t in req.dialog]
-    out = dispatcher.utterance(dialogue, spice=spice)
+    if chat_mode == "teach":
+        out = teach.utterance(dialogue, temperature=req.temperature, register_mode=register_mode)
+    else:
+        out = dispatcher.utterance(dialogue, register_mode=register_mode)
 
     timestamps.append(int(time.time()))
     remaining = max(0, CAP_PER_WINDOW - len(timestamps))
@@ -194,18 +202,36 @@ async def healthz():
     return {
         "ok": True,
         "specialist": "anthropic-fewshot",
+        "teach": "anthropic-planner-loop",
         "generalist": "configured" if generalist_configured() else "disabled",
-        "spice_modes": ["tuned", "spicy"],
+        "chat_modes": ["review", "teach"],
+        "register_modes": ["professional", "sailor"],
     }
 
 
-@app.post("/spice")
-async def set_spice(spice: str = Form(...)):
-    if spice not in ("tuned", "spicy"):
-        raise HTTPException(status_code=400, detail="spice must be 'tuned' or 'spicy'")
-    resp = JSONResponse({"spice": spice})
+def _set_register_response(register_mode: str) -> JSONResponse:
+    resp = JSONResponse({"register": register_mode})
     resp.set_cookie(
-        SPICE_COOKIE, spice,
+        REGISTER_COOKIE, register_mode,
+        max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=True,
+    )
+    return resp
+
+
+@app.post("/register")
+async def set_register(register_mode: str = Form(...)):
+    if register_mode not in ("professional", "sailor"):
+        raise HTTPException(status_code=400, detail="register_mode must be 'professional' or 'sailor'")
+    return _set_register_response(register_mode)
+
+
+@app.post("/mode")
+async def set_mode(mode: str = Form(...)):
+    if mode not in ("review", "teach"):
+        raise HTTPException(status_code=400, detail="mode must be 'review' or 'teach'")
+    resp = JSONResponse({"mode": mode})
+    resp.set_cookie(
+        MODE_COOKIE, mode,
         max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=True,
     )
     return resp

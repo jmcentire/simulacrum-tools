@@ -3,17 +3,28 @@
     "code",
     "python"
   ],
-  "node_count": 11,
+  "node_count": 14,
   "nodes": [
     {
       "domains": [
         "code",
         "python"
       ],
-      "id": "code-mod-simulacrum-11d3e62110ab",
+      "id": "code-mod-simulacrum-public-00e9b5e3f236",
+      "title": "fly/agents/teach.py",
+      "type": "artifact",
+      "updated_at": "2026-06-14T00:16:47",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-mod-simulacrum-public-11d3e62110ab",
       "title": "fly/agents/specialist.py",
       "type": "artifact",
-      "updated_at": "2026-05-30T14:50:22",
+      "updated_at": "2026-06-14T00:16:47",
       "weight": 0.5
     },
     {
@@ -21,10 +32,10 @@
         "code",
         "python"
       ],
-      "id": "code-mod-simulacrum-2ea21d56423c",
+      "id": "code-mod-simulacrum-public-2ea21d56423c",
       "title": "fly/app.py",
       "type": "artifact",
-      "updated_at": "2026-05-30T14:50:22",
+      "updated_at": "2026-06-14T00:16:47",
       "weight": 0.5
     },
     {
@@ -32,10 +43,21 @@
         "code",
         "python"
       ],
-      "id": "code-mod-simulacrum-9f6d94f42b9f",
+      "id": "code-mod-simulacrum-public-681aa26ad385",
+      "title": "fly/agents/__init__.py",
+      "type": "artifact",
+      "updated_at": "2026-06-14T00:16:47",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-mod-simulacrum-public-9f6d94f42b9f",
       "title": "fly/agents/dispatcher.py",
       "type": "artifact",
-      "updated_at": "2026-05-30T14:50:22",
+      "updated_at": "2026-06-14T00:16:47",
       "weight": 0.5
     },
     {
@@ -43,10 +65,10 @@
         "code",
         "python"
       ],
-      "id": "code-mod-simulacrum-b1703f8f77c4",
+      "id": "code-mod-simulacrum-public-b1703f8f77c4",
       "title": "fly/agents/generalist.py",
       "type": "artifact",
-      "updated_at": "2026-05-30T14:50:22",
+      "updated_at": "2026-05-24T15:05:16",
       "weight": 0.5
     },
     {
@@ -54,10 +76,10 @@
         "code",
         "python"
       ],
-      "id": "code-mod-simulacrum-f6725ff8068d",
+      "id": "code-mod-simulacrum-public-f6725ff8068d",
       "title": "skill/run.py",
       "type": "artifact",
-      "updated_at": "2026-05-30T14:50:22",
+      "updated_at": "2026-05-24T15:05:16",
       "weight": 0.5
     },
     {
@@ -65,69 +87,80 @@
         "code",
         "python"
       ],
-      "id": "code-sym-simulacrum-3f352530c2ae",
+      "id": "code-sym-simulacrum-public-33e3e5b3e0e8",
+      "title": "TeachAgent",
+      "type": "concept",
+      "updated_at": "2026-06-14T00:16:47",
+      "weight": 0.5
+    },
+    {
+      "domains": [
+        "code",
+        "python"
+      ],
+      "id": "code-sym-simulacrum-public-3f352530c2ae",
       "title": "ChatResponse",
       "type": "concept",
-      "updated_at": "2026-05-30T14:50:22",
-      "weight": 0.5
+      "updated_at": "2026-06-14T00:16:47",
+      "weight": 0.01
     },
     {
       "domains": [
         "code",
         "python"
       ],
-      "id": "code-sym-simulacrum-5967b0379cd3",
+      "id": "code-sym-simulacrum-public-5967b0379cd3",
       "title": "Dispatcher",
       "type": "concept",
-      "updated_at": "2026-05-30T14:50:22",
-      "weight": 0.5
+      "updated_at": "2026-06-14T00:16:46",
+      "weight": 0.01
     },
     {
       "domains": [
         "code",
         "python"
       ],
-      "id": "code-sym-simulacrum-8d65d93b7c5f",
+      "id": "code-sym-simulacrum-public-8d65d93b7c5f",
       "title": "SpecialistAgent",
       "type": "concept",
-      "updated_at": "2026-05-30T14:50:22",
-      "weight": 0.5
+      "updated_at": "2026-06-14T00:16:46",
+      "weight": 0.01
     },
     {
       "domains": [
         "code",
         "python"
       ],
-      "id": "code-sym-simulacrum-d0083b30e795",
+      "id": "code-sym-simulacrum-public-d0083b30e795",
       "title": "DialogTurn",
       "type": "concept",
-      "updated_at": "2026-05-30T14:50:22",
-      "weight": 0.5
+      "updated_at": "2026-06-14T00:16:47",
+      "weight": 0.01
     },
     {
       "domains": [
         "code",
         "python"
       ],
-      "id": "code-sym-simulacrum-e84b3adab0b4",
+      "id": "code-sym-simulacrum-public-e84b3adab0b4",
       "title": "GeneralistAgent",
       "type": "concept",
-      "updated_at": "2026-05-30T14:50:22",
-      "weight": 0.5
+      "updated_at": "2026-05-28T17:57:03",
+      "weight": 0.01
     },
     {
       "domains": [
         "code",
         "python"
       ],
-      "id": "code-sym-simulacrum-f769243da100",
+      "id": "code-sym-simulacrum-public-f769243da100",
       "title": "ChatRequest",
       "type": "concept",
-      "updated_at": "2026-05-30T14:50:22",
-      "weight": 0.5
+      "updated_at": "2026-06-14T00:16:47",
+      "weight": 0.01
     }
   ],
-  "repo": "simulacrum",
-  "source_updated_at": "2026-05-30T14:50:22",
+  "repo": "simulacrum-public",
+  "source_updated_at": "2026-06-14T00:16:47",
   "version": 1
 }
