@@ -22,7 +22,7 @@ primary_region = "iad"  # us-east; change to closer if needed
   force_https = true
   auto_stop_machines = "stop"     # spin down when idle to save cost
   auto_start_machines = true       # cold-start on next request
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ["app"]
 
 [[http_service.checks]]
