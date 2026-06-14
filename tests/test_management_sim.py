@@ -231,19 +231,52 @@ class ManagementSimTests(unittest.TestCase):
         self.assertNotIn("knowledge_flow", serialized)
         self.assertNotIn("relationship_friction", serialized)
 
-    def test_investigating_artifact_spends_attention_and_reveals_detail(self):
+    def test_project_desk_spends_attention_and_returns_operational_facts(self):
+        service = ManagementSimService()
+        service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        response = service.ask_desk("user-1", "What is the current workflow builder status?")
+        self.assertEqual(response["attention"]["remaining"], 3)
+        self.assertIn("Workflow builder", response["response_text"])
+        events = persistence.list_events(service.load_active_run("user-1")["run_id"], "user-1")
+        desk_events = [event for event in events if event["event_type"] == "desk_query"]
+        self.assertEqual(len(desk_events), 1)
+        self.assertIn("delivery", desk_events[0]["payload"]["topics"])
+
+    def test_public_inbox_never_exposes_hidden_detail(self):
         service = ManagementSimService()
         state = service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
-        artifact_id = state["artifact_inbox"][0]["id"]
-        public = service.investigate_artifact("user-1", artifact_id)
-        self.assertEqual(public["attention"]["remaining"], 3)
-        item = next(item for item in public["artifact_inbox"] if item["id"] == artifact_id)
-        self.assertTrue(item["revealed"])
-        self.assertIsNotNone(item["detail"])
-        public = service.investigate_artifact("user-1", artifact_id)
-        self.assertEqual(public["attention"]["remaining"], 3)
+        public = service.public_state(state)
+        item = public["artifact_inbox"][0]
+        self.assertIn("preview", item)
+        self.assertNotIn("detail", item)
+        self.assertNotIn("revealed", item)
+
+    def test_qualitative_prediction_is_resolved(self):
+        service = ManagementSimService()
+        service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        service.set_tracking_note("user-1", "I am watching delivery and Maya's energy.")
+        service.submit_day_report(
+            "user-1",
+            {
+                "observations": "The team is moving, but the roadmap has too many parallel bets.",
+                "hypotheses": "The likely constraint is overload rather than lack of capability.",
+                "questions": "I need to know which dependency is forcing context switching.",
+                "decision": "I will clarify scope before asking for more output.",
+                "change_mind": "I will change my mind if the next report shows quality is the real problem.",
+                "predictions": [
+                    {
+                        "expectation": "I expect Maya's energy to improve after the scope is narrowed.",
+                        "rationale": "The current load should fall once the team stops running parallel bets.",
+                        "falsifier": "If Maya closes less work and becomes harder to schedule, I am wrong.",
+                    }
+                ],
+            },
+        )
+        service.advance_day("user-1")
         events = persistence.list_events(service.load_active_run("user-1")["run_id"], "user-1")
-        self.assertEqual(len([event for event in events if event["event_type"] == "artifact_investigated"]), 1)
+        resolved = [event for event in events if event["event_type"] == "prediction_resolved"]
+        self.assertEqual(len(resolved), 1)
+        self.assertIn(resolved[0]["payload"]["actual_direction"], {"up", "down", "stable"})
 
     def test_first_one_on_one_spends_attention_once_per_person(self):
         service = ManagementSimService()

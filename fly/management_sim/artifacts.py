@@ -85,13 +85,21 @@ Do not reveal hidden model state, scores, or internal mechanics.""",
         )
         return text or fallback
 
-    def reply(self, persona: PersonaDefinition, state: HiddenState, history: list[dict[str, Any]], message: str) -> str:
+    def reply(
+        self,
+        persona: PersonaDefinition,
+        state: HiddenState,
+        history: list[dict[str, Any]],
+        message: str,
+        manager_visible_clues: list[dict[str, str]] | None = None,
+    ) -> str:
         fallback = self._fallback_reply(persona, state, message)
         prompt = {
             "persona": persona.name,
             "role": persona.role,
             "communication_style": persona.hidden["communication_style"],
             "observable_clues": persona_observations(persona, state, f"reply:{state.week}:{persona.id}"),
+            "manager_visible_clues": manager_visible_clues or [],
             "conversation_history": history[-8:],
             "manager_message": message,
             "avoid": ["Do not reveal hidden scores, internal state names, or numeric ratings."],
@@ -133,7 +141,14 @@ class ArtifactService:
             "observations": persona_observations(persona, state, f"report:{state.week}:{persona.id}"),
         }
 
-    def send_message(self, run_id: str, persona: PersonaDefinition, state: HiddenState, message: str) -> dict[str, Any]:
+    def send_message(
+        self,
+        run_id: str,
+        persona: PersonaDefinition,
+        state: HiddenState,
+        message: str,
+        manager_visible_clues: list[dict[str, str]] | None = None,
+    ) -> dict[str, Any]:
         verdict = self.guard.check(message)
         if not verdict.passed:
             raise PermissionError(verdict.category or "rejected")
@@ -141,7 +156,7 @@ class ArtifactService:
         manager_turns = sum(1 for turn in history if turn["role"] == "manager")
         if manager_turns >= TURN_LIMIT:
             raise ValueError("turn limit reached for this 1:1")
-        raw = self.actor.reply(persona, state, history, message)
+        raw = self.actor.reply(persona, state, history, message, manager_visible_clues)
         fallback = self.actor._fallback_reply(persona, state, message)
         audited: AuditResult = self.auditor.audit(raw, fallback)
         turn_number = manager_turns * 2 + 1

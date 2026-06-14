@@ -26,9 +26,9 @@ class HypervisorAssessor:
             if event["event_type"] == "prediction_resolved"
         ]
         investigation_events = [
-            event["payload"]
+            {**event["payload"], "event_type": event["event_type"]}
             for event in events
-            if event["event_type"] in {"artifact_investigated", "dialogue_turn"}
+            if event["event_type"] in {"dialogue_turn", "desk_query"}
         ]
         action_events = [
             event["payload"]
@@ -45,15 +45,10 @@ class HypervisorAssessor:
         total_predictions = len(prediction_events)
         hits = sum(1 for item in prediction_events if item.get("hit"))
         misses = total_predictions - hits
-        confidence_error = sum(
-            abs((100 if item.get("hit") else 0) - int(item.get("confidence", 50)))
-            for item in prediction_events
-        )
         calibration = 0
         if total_predictions:
             hit_rate = hits / total_predictions
-            mean_error = confidence_error / total_predictions
-            calibration = max(-1, min(1, round((hit_rate - 0.5) * 8 - max(0, mean_error - 35) / 15)))
+            calibration = max(-1, min(1, round((hit_rate - 0.5) * 8)))
 
         grounded_actions = 0
         for action in action_events:
@@ -62,7 +57,12 @@ class HypervisorAssessor:
             for investigation in investigation_events:
                 if investigation.get("day") != action_day:
                     continue
-                if investigation.get("persona_id") == persona_id or investigation.get("artifact_id"):
+                if investigation.get("persona_id") == persona_id and investigation.get("clue_used"):
+                    grounded_actions += 1
+                    break
+                if investigation.get("event_type") == "desk_query" and (
+                    set(investigation.get("topics", [])) & set(action.get("topics", []))
+                ):
                     grounded_actions += 1
                     break
         ungrounded_actions = max(0, len(action_events) - grounded_actions)
@@ -203,7 +203,7 @@ class HypervisorAssessor:
                 evidence or ["No manager evidence recorded yet."],
                 [
                     "The simulator gives more weight to observed outcomes and resolved predictions than to action labels.",
-                    f"{grounded_actions} intervention(s) were preceded by same-day investigation or 1:1 evidence; {ungrounded_actions} were not.",
+                    f"{grounded_actions} intervention(s) were preceded by same-day clue-using 1:1s or relevant desk evidence; {ungrounded_actions} were not.",
                     f"{blocked_work} workstream(s) remained blocked, {rework_work} were in rework, and the visible velocity ended at {product.get('velocity', 50)}.",
                     f"{preventable_exits} preventable exit(s) and {external_exits} outside-offer exit(s) occurred during the run.",
                 ],
@@ -288,7 +288,7 @@ class HypervisorAssessor:
             return 68
         if event_type == "prediction_resolved":
             return 45
-        if event_type in {"artifact_investigated", "dialogue_turn"}:
+        if event_type in {"dialogue_turn", "desk_query"}:
             return 35
         return 0
 
@@ -306,10 +306,11 @@ class HypervisorAssessor:
             candidate = payload.get("candidate_id")
             return f"Selected backfill {candidate}." if candidate else "Declined the backfill slot."
         if event_type == "manager_action":
-            return payload.get("summary")
+            plan = payload.get("plan")
+            return plan[:180] if plan else payload.get("summary")
         if event_type == "prediction_resolved":
             return payload.get("summary")
-        if event_type in {"artifact_investigated", "dialogue_turn"}:
+        if event_type in {"dialogue_turn", "desk_query"}:
             return payload.get("summary")
         return None
 

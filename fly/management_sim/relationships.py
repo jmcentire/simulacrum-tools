@@ -268,15 +268,15 @@ def public_inbox(inbox: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "channel": item["channel"],
             "title": item["title"],
             "preview": item["preview"],
-            "revealed": item.get("revealed", False),
-            "detail": item["detail"] if item.get("revealed", False) else None,
         }
         for item in inbox
     ]
 
 
 def _artifact(day: int, kind: str, channel: str, title: str, detail: str) -> dict[str, Any]:
-    preview = title if len(title) < 120 else f"{title[:117]}..."
+    preview = detail.split(".")[0].strip()
+    if len(preview) > 120:
+        preview = f"{preview[:117]}..."
     return {
         "id": f"{day}:pending:{kind}",
         "kind": kind,

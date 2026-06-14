@@ -14,7 +14,7 @@ The current module implements a twenty-session curriculum loop:
 - conduct guarded 1:1 conversations
 - interview candidates with constrained behavioral probes rather than a clean
   self-report scorecard
-- spend finite daily attention on 1:1s or artifact investigation rather than
+- spend finite daily attention on 1:1s or Project Desk queries rather than
   seeing every signal for free
 - inspect noisy artifact packets from planning, Slack, code review, stakeholder,
   and calendar channels
@@ -23,14 +23,14 @@ The current module implements a twenty-session curriculum loop:
 - see delayed retention warnings before a person gives notice: micromanagement,
   stagnant work, overload, trust loss, and outside offers are separate causes
 - write an end-of-day notebook: observations, hypotheses, questions, decision,
-  prediction, and what would change the manager's mind
+  a qualitative prediction, and what would change the manager's mind
 - advance the world asynchronously and let consequences surface
 - make a hire in week 1, terminate two roles in week 2, optionally use one
   backfill slot, then operate through changing goals and incidents
 - survive a roadmap pivot and an unexpected dependency-holder leave event that
   test whether the manager built redundancy rather than just short-term output
-- request a hypervisor report with -5..+5 alignment by person trait, team
-  dynamic, product complication, and crisis outcome
+- receive a final hypervisor report with -5..+5 alignment by person trait, team
+  dynamic, product complication, and crisis outcome after the run ends
 
 ## Architecture
 
@@ -86,7 +86,8 @@ The simulator models a small number of load-bearing dynamics:
    The manager is assessed on avoidable loss and on whether the team survives
    any loss through redundancy and handoff quality.
 5. Manager attention determines what becomes knowable; ignored signals stay
-   hidden until they become consequences.
+   hidden until they become consequences. Inbox traces are only prompts to ask
+   better questions in a 1:1 or through the Project Desk.
 6. Actions have delayed, noisy effects. The manager gets one timeline, not an
    alternate-history oracle.
 7. A well-built team should survive discontinuity better than a team that only

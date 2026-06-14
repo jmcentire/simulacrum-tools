@@ -26,16 +26,14 @@ class CandidateInterviewRequest(BaseModel):
 
 class ActionRequest(BaseModel):
     persona_id: str
-    action: str
+    plan: str
     rationale: str = ""
 
 
 class PredictionRequest(BaseModel):
-    subject: str
-    outcome: str
-    direction: str
-    confidence: int
+    expectation: str
     rationale: str
+    falsifier: str = ""
 
 
 class DayReportRequest(BaseModel):
@@ -81,15 +79,20 @@ class BackfillRequest(BaseModel):
 
 
 class TrackingRequest(BaseModel):
-    focus: list[str] = Field(min_length=1, max_length=3)
+    note: str | None = None
+    focus: list[str] = Field(default_factory=list, max_length=3)
 
 
 class AdvanceRequest(BaseModel):
     expected_day: int
 
 
-class InvestigateArtifactRequest(BaseModel):
-    artifact_id: str
+class DeskRequest(BaseModel):
+    message: str
+
+
+class NotesRequest(BaseModel):
+    notes: str
 
 
 def _require_user(session_token: str | None) -> dict:
@@ -148,16 +151,16 @@ async def candidate_interview(candidate_id: str, req: CandidateInterviewRequest,
 async def action(req: ActionRequest, simulacrum_session: str | None = Cookie(None)):
     user = _require_user(simulacrum_session)
     try:
-        return {"run": service.apply_manager_action(user["id"], req.persona_id, req.action, req.rationale)}
+        return {"run": service.apply_manager_plan(user["id"], req.persona_id, req.plan, req.rationale)}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
-@router.post("/investigate")
-async def investigate(req: InvestigateArtifactRequest, simulacrum_session: str | None = Cookie(None)):
+@router.post("/desk")
+async def desk(req: DeskRequest, simulacrum_session: str | None = Cookie(None)):
     user = _require_user(simulacrum_session)
     try:
-        return {"run": service.investigate_artifact(user["id"], req.artifact_id)}
+        return await asyncio.to_thread(service.ask_desk, user["id"], req.message)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -184,7 +187,18 @@ async def week_report(req: ReportRequest, simulacrum_session: str | None = Cooki
 async def tracking(req: TrackingRequest, simulacrum_session: str | None = Cookie(None)):
     user = _require_user(simulacrum_session)
     try:
+        if req.note is not None:
+            return {"run": service.set_tracking_note(user["id"], req.note)}
         return {"run": service.set_tracking_focus(user["id"], req.focus)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/notes")
+async def notes(req: NotesRequest, simulacrum_session: str | None = Cookie(None)):
+    user = _require_user(simulacrum_session)
+    try:
+        return {"run": service.save_manager_notes(user["id"], req.notes)}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -239,6 +253,9 @@ async def advance(req: AdvanceRequest, simulacrum_session: str | None = Cookie(N
 async def assessment(simulacrum_session: str | None = Cookie(None)):
     user = _require_user(simulacrum_session)
     try:
+        state = service.load_active_run(user["id"])
+        if not state or state["day"] < 20:
+            raise HTTPException(status_code=403, detail="final report is available after the run ends")
         report = service.assessment(user["id"])
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))

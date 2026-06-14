@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+import re
 from typing import Any
 
 import db
@@ -12,7 +13,7 @@ from .artifacts import ArtifactService
 from .assessor import HypervisorAssessor
 from .curriculum import day_in_week, plan_for_day, week_for_day
 from .interviews import CandidateInterviewService
-from .latent_state import ACTION_VOCABULARY, advance_day, apply_action, initial_state, state_hash
+from .latent_state import advance_day, apply_action, initial_state, state_hash
 from .models import HiddenState
 from .observations import persona_observations, product_observations
 from .persona_store import PersonaStore
@@ -33,6 +34,67 @@ from .work import advance_workstreams, initial_workstreams, public_workstreams, 
 
 STARTING_TEAM_IDS = ["maya", "jonah", "elena", "trent", "rhea"]
 FINAL_DAY = 20
+
+
+def _preview(detail: str) -> str:
+    preview = detail.split(".")[0].strip()
+    return f"{preview[:117]}..." if len(preview) > 120 else preview
+
+
+def _infer_tracking_focus(note: str) -> list[str]:
+    selected = _infer_topics(note)
+    if not selected:
+        selected = ["delivery"]
+    return selected[:3]
+
+
+def _infer_topics(text: str) -> list[str]:
+    normalized = text.lower()
+    mapping = {
+        "delivery": (
+            "delivery",
+            "ship",
+            "deadline",
+            "roadmap",
+            "velocity",
+            "ticket",
+            "commitment",
+            "release",
+            "status",
+            "workstream",
+            "scope",
+            "priority",
+            "integration",
+            "owner",
+            "ownership",
+        ),
+        "quality": ("quality", "bug", "error", "review", "rollback", "edge case", "rework", "incident", "reliability"),
+        "team_health": ("team", "energy", "morale", "burnout", "overload", "stress", "engagement", "focus", "meeting"),
+        "retention": ("retention", "quit", "leave", "flight", "recruiter", "poach", "attrition", "stay"),
+        "customer_impact": ("customer", "pilot", "sales", "support", "adoption", "churn", "revenue", "impact"),
+    }
+    return [focus for focus, words in mapping.items() if any(word in normalized for word in words)]
+
+
+def _infer_action(plan: str, rationale: str = "") -> str:
+    normalized = f"{plan} {rationale}".lower()
+    rules = [
+        ("protect_slack", ("protect", "slack", "capacity", "reduce load", "cut scope", "pull back", "pause")),
+        ("clarify_scope", ("clarify", "sequence", "prioritize", "priority", "narrow", "scope", "cut ambiguous")),
+        ("delegate_ownership", ("ownership", "own", "decision boundary", "responsible", "lead")),
+        ("cross_train", ("pair", "cross-train", "cross train", "document", "backup", "redundancy")),
+        ("mediate_conflict", ("conflict", "mediate", "tension", "disagree", "talk together", "repair")),
+        ("coach_directly", ("feedback", "coach", "growth", "mentor", "develop")),
+        ("recognize_work", ("recognize", "credit", "praise", "thank", "acknowledge")),
+        ("increase_checkins", ("check-in", "checkin", "sync", "status", "cadence", "standup")),
+        ("assign_maintenance", ("maintenance", "cleanup", "bugfix", "operational", "routine")),
+        ("push_scope", ("push", "commit", "more output", "ship faster", "deadline", "ask for more")),
+        ("defer_decision", ("wait", "defer", "hold", "not intervene", "gather more context")),
+    ]
+    for action, words in rules:
+        if any(word in normalized for word in words):
+            return action
+    return "defer_decision"
 
 
 def _clamp(value: int) -> int:
@@ -103,6 +165,9 @@ class ManagementSimService:
             "product_pressure": 74,
             "reports": {"daily": {}, "weekly": {}},
             "tracking_focus": [],
+            "tracking_note": "",
+            "manager_notes": "",
+            "desk_history": [],
             "relationships": initial_relationships(run_id, team, self._persona_map(team)),
             "attention": {"budget": 4, "remaining": 4, "spent": []},
             "artifact_inbox": [],
@@ -180,7 +245,8 @@ class ManagementSimService:
             "cash_remaining_cents": state["cash_remaining_cents"],
             "team": team,
             "product": state["product"],
-            "tracking_focus": state["tracking_focus"],
+            "tracking_note": state.get("tracking_note", ""),
+            "manager_notes": state.get("manager_notes", ""),
             "attention": state["attention"],
             "artifact_inbox": public_inbox(state["artifact_inbox"]),
             "world_events": self._public_world_events(state),
@@ -188,7 +254,6 @@ class ManagementSimService:
             "curriculum": plan_for_day(state["day"]),
             "reports_due": self._reports_due(state),
             "milestones": self._public_milestones(state),
-            "actions": [{"id": key, "label": label} for key, label in ACTION_VOCABULARY.items()],
         }
 
     def week_view(self, state: dict[str, Any]) -> dict[str, Any]:
@@ -217,9 +282,11 @@ class ManagementSimService:
             "scenario": state.get("scenario"),
             "reports": reports,
             "product": state["product"],
-            "tracking_focus": state["tracking_focus"],
+            "tracking_note": state.get("tracking_note", ""),
+            "manager_notes": state.get("manager_notes", ""),
             "attention": state["attention"],
             "artifact_inbox": public_inbox(state["artifact_inbox"]),
+            "desk_history": state.get("desk_history", []),
             "world_events": self._public_world_events(state),
             "workstreams": public_workstreams(state["workstreams"], self._persona_map(state["team"])),
             "product_observations": product_observations(
@@ -231,7 +298,6 @@ class ManagementSimService:
             "reports_due": self._reports_due(state),
             "milestones": self._public_milestones(state),
             "candidate_pool": self._candidate_pool_view(state),
-            "actions": [{"id": key, "label": label} for key, label in ACTION_VOCABULARY.items()],
         }
 
     def send_message(self, user_id: str, persona_id: str, message: str) -> dict[str, Any]:
@@ -244,13 +310,21 @@ class ManagementSimService:
             self._spend_attention(state, "1:1", persona_id, f"Opened a 1:1 with {persona_id}.")
         persona = self.personas.get(persona_id)
         hidden = HiddenState(**state["team_state"][persona_id])
-        response = self.artifacts.send_message(state["run_id"], persona, hidden, message)
+        clues = self._persona_inbox_clues(state, persona)
+        response = self.artifacts.send_message(state["run_id"], persona, hidden, message, clues)
+        clue_used = self._message_uses_clue(message, clues)
         persistence.save_run(user_id, state)
         persistence.append_event(
             state["run_id"],
             user_id,
             "dialogue_turn",
-            {"persona_id": persona_id, "turn_number": response["turn_number"], "state_hash": state_hash(hidden)},
+            {
+                "persona_id": persona_id,
+                "turn_number": response["turn_number"],
+                "state_hash": state_hash(hidden),
+                "clue_used": clue_used,
+                "summary": f"Opened a 1:1 with {persona.name}{' using a visible clue' if clue_used else ''}.",
+            },
         )
         return response
 
@@ -278,29 +352,20 @@ class ManagementSimService:
         )
         return {"candidate_id": candidate_id, "response_text": response, "turn_number": len(history) // 2}
 
-    def investigate_artifact(self, user_id: str, artifact_id: str) -> dict[str, Any]:
-        state = self._require_run(user_id)
-        artifact = next((item for item in state["artifact_inbox"] if item["id"] == artifact_id), None)
-        if not artifact:
-            raise ValueError("artifact not found")
-        if not artifact.get("revealed", False):
-            self._spend_attention(state, "artifact", artifact_id, f"Investigated {artifact['channel']} artifact.")
-            artifact["revealed"] = True
-            persistence.append_event(
-                state["run_id"],
-                user_id,
-                "artifact_investigated",
-                {
-                    "day": state["day"],
-                    "artifact_id": artifact_id,
-                    "channel": artifact["channel"],
-                    "summary": artifact["title"],
-                },
-            )
-        persistence.save_run(user_id, state)
-        return self.public_state(state) or {}
+    def apply_manager_plan(self, user_id: str, persona_id: str, plan: str, rationale: str = "") -> dict[str, Any]:
+        plan = plan.strip()
+        if len(plan) < 12:
+            raise ValueError("describe the move you are making in at least 12 characters")
+        return self.apply_manager_action(user_id, persona_id, _infer_action(plan, rationale), rationale, plan=plan)
 
-    def apply_manager_action(self, user_id: str, persona_id: str, action: str, rationale: str = "") -> dict[str, Any]:
+    def apply_manager_action(
+        self,
+        user_id: str,
+        persona_id: str,
+        action: str,
+        rationale: str = "",
+        plan: str = "",
+    ) -> dict[str, Any]:
         state = self._require_run(user_id)
         if persona_id not in state["team"]:
             raise ValueError("persona is not on this team")
@@ -328,6 +393,8 @@ class ManagementSimService:
                 "new_state_hash": after_hash,
                 "deltas": deltas,
                 "rationale": rationale[:400],
+                "plan": plan[:800],
+                "topics": _infer_topics(f"{plan} {rationale}"),
             },
         )
         return self.public_state(state) or {}
@@ -363,6 +430,22 @@ class ManagementSimService:
         )
         return self.public_state(state) or {}
 
+    def set_tracking_note(self, user_id: str, note: str) -> dict[str, Any]:
+        state = self._require_run(user_id)
+        note = note.strip()
+        if len(note) < 12:
+            raise ValueError("write what you are watching in at least 12 characters")
+        state["tracking_note"] = note[:1200]
+        state["tracking_focus"] = _infer_tracking_focus(note)
+        persistence.save_run(user_id, state)
+        persistence.append_event(
+            state["run_id"],
+            user_id,
+            "tracking_note_set",
+            {"day": state["day"], "summary": note[:220], "derived_focus": state["tracking_focus"]},
+        )
+        return self.public_state(state) or {}
+
     def set_tracking_focus(self, user_id: str, focus: list[str]) -> dict[str, Any]:
         state = self._require_run(user_id)
         allowed = {"delivery", "quality", "team_health", "retention", "customer_impact"}
@@ -370,6 +453,7 @@ class ManagementSimService:
         if not cleaned or len(cleaned) > 3:
             raise ValueError("choose between one and three tracking signals")
         state["tracking_focus"] = cleaned
+        state["tracking_note"] = ", ".join(cleaned)
         persistence.save_run(user_id, state)
         persistence.append_event(
             state["run_id"],
@@ -378,6 +462,39 @@ class ManagementSimService:
             {"day": state["day"], "focus": cleaned, "summary": f"Tracking focus set to {', '.join(cleaned)}."},
         )
         return self.public_state(state) or {}
+
+    def save_manager_notes(self, user_id: str, notes: str) -> dict[str, Any]:
+        state = self._require_run(user_id)
+        notes = notes.strip()
+        state["manager_notes"] = notes[:12000]
+        persistence.save_run(user_id, state)
+        persistence.append_event(
+            state["run_id"],
+            user_id,
+            "manager_notes_saved",
+            {"day": state["day"], "summary": notes[:220]},
+        )
+        return self.public_state(state) or {}
+
+    def ask_desk(self, user_id: str, message: str) -> dict[str, Any]:
+        state = self._require_run(user_id)
+        message = message.strip()
+        if len(message) < 4:
+            raise ValueError("ask a concrete question about the work")
+        self._spend_attention(state, "desk", "project_desk", "Asked Project Desk for operational information.")
+        answer = self._desk_answer(state, message)
+        history = state.setdefault("desk_history", [])
+        history.append({"role": "manager", "content": message})
+        history.append({"role": "desk", "content": answer})
+        state["desk_history"] = history[-12:]
+        persistence.save_run(user_id, state)
+        persistence.append_event(
+            state["run_id"],
+            user_id,
+            "desk_query",
+            {"day": state["day"], "summary": message[:220], "topics": _infer_topics(message)},
+        )
+        return {"response_text": answer, "turn_number": len(history) // 2, "attention": state["attention"]}
 
     def _validate_journal(self, report: dict[str, Any]) -> dict[str, Any]:
         journal = {
@@ -397,20 +514,23 @@ class ManagementSimService:
         raw_predictions = report.get("predictions", [])
         if not isinstance(raw_predictions, list) or len(raw_predictions) > 3:
             raise ValueError("submit between zero and three predictions")
-        allowed_outcomes = {"energy", "trust", "quality", "delivery", "risk"}
-        allowed_directions = {"up", "down", "stable"}
         for raw in raw_predictions:
             if not isinstance(raw, dict):
                 raise ValueError("prediction must be an object")
-            subject = str(raw.get("subject", "")).strip()
-            outcome = str(raw.get("outcome", "")).strip()
-            direction = str(raw.get("direction", "")).strip()
-            confidence = int(raw.get("confidence", 0))
+            expectation = str(raw.get("expectation", "")).strip()
             rationale = str(raw.get("rationale", "")).strip()
-            if not subject or outcome not in allowed_outcomes or direction not in allowed_directions:
-                raise ValueError("prediction has invalid subject, outcome, or direction")
-            if confidence < 20 or confidence > 95:
-                raise ValueError("prediction confidence must be between 20 and 95")
+            falsifier = str(raw.get("falsifier", "")).strip()
+            if expectation:
+                subject, outcome, direction = self._parse_prediction(expectation)
+                if not subject or not outcome:
+                    raise ValueError("prediction must name what you expect to improve")
+            else:
+                subject = str(raw.get("subject", "")).strip()
+                outcome = str(raw.get("outcome", "")).strip()
+                direction = str(raw.get("direction", "")).strip()
+                if not subject or outcome not in {"energy", "trust", "quality", "delivery", "risk"} or direction not in {"up", "down", "stable"}:
+                    raise ValueError("prediction has invalid subject, outcome, or direction")
+                expectation = f"I expect {subject} {outcome} to improve."
             if len(rationale) < 10:
                 raise ValueError("prediction rationale must be at least 10 characters")
             journal["predictions"].append(
@@ -418,11 +538,31 @@ class ManagementSimService:
                     "subject": subject,
                     "outcome": outcome,
                     "direction": direction,
-                    "confidence": confidence,
+                    "expectation": expectation[:500],
                     "rationale": rationale[:500],
+                    "falsifier": falsifier[:500],
                 }
             )
         return journal
+
+    def _parse_prediction(self, expectation: str) -> tuple[str, str, str]:
+        normalized = expectation.lower()
+        subject = "team"
+        for persona in self.personas.load_all():
+            if persona.name.lower().split()[0] in normalized or persona.id in normalized:
+                subject = persona.id
+                break
+        if any(token in normalized for token in ("quality", "bug", "error", "review", "rollback")):
+            return subject, "quality", "up"
+        if any(token in normalized for token in ("trust", "confidence", "relationship", "communication")):
+            return subject, "trust", "up"
+        if any(token in normalized for token in ("energy", "morale", "burnout", "engagement", "focus")):
+            return subject, "energy", "up"
+        if any(token in normalized for token in ("risk", "retention", "quit", "leave", "flight")):
+            return subject, "risk", "down"
+        if any(token in normalized for token in ("delivery", "ship", "progress", "velocity", "ticket", "roadmap")):
+            return subject, "delivery", "up"
+        return "", "", ""
 
     def submit_week_report(self, user_id: str, report: str) -> dict[str, Any]:
         state = self._require_run(user_id)
@@ -632,9 +772,11 @@ class ManagementSimService:
                     "outcome": prediction["outcome"],
                     "expected_direction": prediction["direction"],
                     "actual_direction": actual_direction,
-                    "confidence": prediction["confidence"],
                     "hit": hit,
-                    "summary": f"Predicted {prediction['subject']} {prediction['outcome']} would move {prediction['direction']}; it moved {actual_direction}.",
+                    "expectation": prediction.get("expectation", ""),
+                    "rationale": prediction.get("rationale", ""),
+                    "falsifier": prediction.get("falsifier", ""),
+                    "summary": f"Expected {prediction.get('expectation', prediction['subject'])}; observed {actual_direction}.",
                 },
             )
 
@@ -687,6 +829,80 @@ class ManagementSimService:
         events = persistence.list_events(state["run_id"], user_id)
         return self.assessor.assess(state, events).to_dict()
 
+    def _persona_inbox_clues(self, state: dict[str, Any], persona) -> list[dict[str, str]]:
+        clues: list[dict[str, str]] = []
+        for artifact in state.get("artifact_inbox", []):
+            text = f"{artifact.get('title', '')} {artifact.get('preview', '')}"
+            if persona.name in text:
+                clues.append(
+                    {
+                        "channel": artifact.get("channel", ""),
+                        "title": artifact.get("title", ""),
+                        "preview": artifact.get("preview", ""),
+                    }
+                )
+        return clues[:4]
+
+    def _message_uses_clue(self, message: str, clues: list[dict[str, str]]) -> bool:
+        normalized = re.sub(r"[^a-z0-9 ]+", " ", message.lower())
+        words = {word for word in normalized.split() if len(word) >= 5}
+        for clue in clues:
+            clue_words = {
+                word
+                for word in re.sub(r"[^a-z0-9 ]+", " ", f"{clue['title']} {clue['preview']}".lower()).split()
+                if len(word) >= 5
+            }
+            if len(words & clue_words) >= 2:
+                return True
+        return False
+
+    def _desk_answer(self, state: dict[str, Any], message: str) -> str:
+        normalized = message.lower()
+        workstreams = public_workstreams(state["workstreams"], self._persona_map(state["team"]))
+        product = state["product"]
+
+        matched = [
+            item
+            for item in workstreams
+            if item["id"] in normalized or item["title"].lower() in normalized or item["owner"].lower() in normalized
+        ]
+        if matched:
+            item = matched[0]
+            return f"{item['title']} is owned by {item['owner']}, is {item['state'].replace('_', ' ')}, and is {item['completion']}% complete."
+
+        if any(token in normalized for token in ("ticket", "status", "work", "roadmap", "ship", "release")):
+            rows = [
+                f"{item['title']}: {item['state'].replace('_', ' ')} at {item['completion']}%, owned by {item['owner']}"
+                for item in workstreams
+            ]
+            return "Current workstream status: " + "; ".join(rows) + "."
+
+        if any(token in normalized for token in ("metric", "velocity", "error", "quality", "alignment", "value", "progress")):
+            return (
+                f"Current metrics: velocity {product['velocity']}, error rate {product['error_rate']}, "
+                f"alignment {product['alignment']}, total value {product['total_value']}."
+            )
+
+        if any(token in normalized for token in ("budget", "headcount", "salary", "cost", "team size")):
+            return (
+                f"The team has {len(state['team'])} people. Headcount budget remaining is "
+                f"${state['cash_remaining_cents'] / 100:,.0f}."
+            )
+
+        if any(token in normalized for token in ("owner", "who owns", "responsible", "integration")):
+            rows = [f"{item['title']} is owned by {item['owner']}" for item in workstreams]
+            return "Current ownership: " + "; ".join(rows) + "."
+
+        if any(token in normalized for token in ("what changed", "summary", "week", "today")):
+            events = self._public_world_events(state)
+            event_text = events[-1]["summary"] if events else "No new executive event is active."
+            return f"Today is day {state['day']} of week {state['week']}. {event_text}"
+
+        return (
+            "I can answer from the project record: workstream status, ownership, delivery metrics, "
+            "quality metrics, budget, or the current roadmap event."
+        )
+
     def _require_run(self, user_id: str) -> dict[str, Any]:
         state = self.load_active_run(user_id)
         if not state:
@@ -714,6 +930,15 @@ class ManagementSimService:
             changed = True
         if "tracking_focus" not in state:
             state["tracking_focus"] = []
+            changed = True
+        if "tracking_note" not in state:
+            state["tracking_note"] = ""
+            changed = True
+        if "manager_notes" not in state:
+            state["manager_notes"] = ""
+            changed = True
+        if "desk_history" not in state:
+            state["desk_history"] = []
             changed = True
         if "relationships" not in state:
             state["relationships"] = initial_relationships(state["run_id"], state["team"], self._persona_map(state["team"]))
@@ -960,7 +1185,7 @@ class ManagementSimService:
                     "kind": "work",
                     "channel": item["channel"],
                     "title": item["title"],
-                    "preview": item["title"],
+                    "preview": _preview(item["detail"]),
                     "detail": item["detail"],
                     "revealed": False,
                 }
@@ -973,7 +1198,7 @@ class ManagementSimService:
                         "kind": "retention",
                         "channel": "calendar",
                         "title": alert["title"],
-                        "preview": alert["title"],
+                        "preview": _preview(alert["detail"]),
                         "detail": alert["detail"],
                         "revealed": False,
                     }
