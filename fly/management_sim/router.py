@@ -14,11 +14,6 @@ router = APIRouter(prefix="/api/management-sim", tags=["management-sim"])
 service = ManagementSimService()
 
 
-class StartRequest(BaseModel):
-    mission: str
-    budget_cents: int
-
-
 class DialogueRequest(BaseModel):
     message: str
 
@@ -110,14 +105,9 @@ async def current(simulacrum_session: str | None = Cookie(None)):
 
 
 @router.post("/start")
-async def start(req: StartRequest, simulacrum_session: str | None = Cookie(None)):
+async def start(simulacrum_session: str | None = Cookie(None)):
     user = _require_user(simulacrum_session)
-    mission = req.mission.strip()
-    if not mission:
-        raise HTTPException(status_code=400, detail="mission required")
-    if req.budget_cents < 500_000_00 or req.budget_cents > 5_000_000_00:
-        raise HTTPException(status_code=400, detail="budget must be between $500,000 and $5,000,000")
-    state = service.create_run(user["id"], mission, req.budget_cents)
+    state = service.create_random_run(user["id"])
     return {"run": service.public_state(state)}
 
 

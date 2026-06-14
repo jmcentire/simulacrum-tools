@@ -26,6 +26,7 @@ from management_sim.service import ManagementSimService  # noqa: E402
 from management_sim.structure import team_structure  # noqa: E402
 from management_sim.work import advance_workstreams, initial_workstreams  # noqa: E402
 from management_sim import persistence  # noqa: E402
+from management_sim.scenarios import HEADCOUNT_BUDGET_CENTS, SCENARIOS  # noqa: E402
 
 
 class ManagementSimTests(unittest.TestCase):
@@ -52,6 +53,13 @@ class ManagementSimTests(unittest.TestCase):
         self.assertIn("purpose", maya.hidden)
         self.assertIn("energy", maya.hidden)
         self.assertIn("friction", maya.hidden)
+
+    def test_random_run_uses_server_selected_scenario_and_fixed_budget(self):
+        service = ManagementSimService()
+        state = service.create_random_run("user-1")
+        self.assertIn(state["scenario"]["id"], {scenario["id"] for scenario in SCENARIOS})
+        self.assertEqual(state["mission"], state["scenario"]["mission"])
+        self.assertEqual(state["budget_cents"], HEADCOUNT_BUDGET_CENTS)
 
     def test_guard_rejects_hidden_state_probes(self):
         guard = InputGuard()

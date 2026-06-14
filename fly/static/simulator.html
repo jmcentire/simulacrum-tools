@@ -68,22 +68,17 @@
     function startView() {
       content.innerHTML = `
         <div class="panel" style="max-width:760px">
-          <h2>Start a management simulation</h2>
-          <p class="muted">You start with five people, a budget, and a product mission that is too large for the quarter. The simulator shows only what a manager could observe: reports, 1:1s, changing delivery signals, and consequences.</p>
-          <label class="muted">Product mission</label>
-          <textarea id="mission" placeholder="Build a reliable B2B workflow platform for mid-market teams."></textarea>
-          <div style="height:12px"></div>
-          <label class="muted">Annual budget</label>
-          <input id="budget" type="number" min="500000" max="5000000" step="50000" value="1250000">
+          <h2>Assess your management instincts</h2>
+          <p class="muted">This is not a management quiz and it is not a checklist of best practices. You will be given a software engineering team, a product mission that is too large for the quarter, a fixed headcount budget, and incomplete information.</p>
+          <p class="muted">Your job is to notice what matters, decide where to spend attention, shape the team, and live with the consequences. The simulator watches the patterns in your decisions and reports where your judgment aligned or misaligned with the people and the work.</p>
+          <p class="muted">Each run starts from a randomly selected scenario. You do not choose the mission, the budget, or the initial team.</p>
           <div style="height:16px"></div>
-          <button id="start">Start run</button>
+          <button id="start">Start random scenario</button>
           <p id="error" class="error"></p>
         </div>`;
       document.getElementById('start').onclick = async () => {
         try {
-          const mission = document.getElementById('mission').value.trim();
-          const budget = Number(document.getElementById('budget').value);
-          const data = await api('/api/management-sim/start', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ mission, budget_cents: Math.round(budget * 100) }) });
+          const data = await api('/api/management-sim/start', { method:'POST' });
           run = data.run;
           await loadWeek();
           render();
@@ -234,7 +229,7 @@
           ${pool && pool.kind === 'week_2_backfill' ? `
             <div class="panel">
               <h2>Backfill Window</h2>
-              <p class="muted">You may use one backfill slot after the reduction, or decline it and preserve budget.</p>
+              <p class="muted">You may use one backfill slot after the reduction, or decline it and preserve headcount budget.</p>
               <select id="backfill-choice">
                 <option value="">Decline backfill</option>
                 ${pool.candidates.map(candidate => `<option value="${esc(candidate.id)}">${esc(candidate.name)} · ${esc(candidate.role)} · ${money(candidate.salary_cents)}</option>`).join('')}
@@ -276,7 +271,7 @@
       return `
         <div class="panel">
           <h2>Backfill Window</h2>
-          <p class="muted">You may use one backfill slot after the reduction, or decline it and preserve budget.</p>
+          <p class="muted">You may use one backfill slot after the reduction, or decline it and preserve headcount budget.</p>
           <select id="backfill-choice">
             <option value="">Decline backfill</option>
             ${pool.candidates.map(candidate => `<option value="${esc(candidate.id)}">${esc(candidate.name)} · ${esc(candidate.role)} · ${money(candidate.salary_cents)}</option>`).join('')}
@@ -292,12 +287,16 @@
         <div class="grid">
           <section>
             <div class="panel">
-              <h2>Day ${run.day} · Week ${run.week} · ${esc(run.mission)}</h2>
+              <h2>Day ${run.day} · Week ${run.week} · ${esc(run.scenario?.title || 'Management Scenario')}</h2>
+              <div class="muted"><strong>Mission:</strong> ${esc(run.mission)}</div>
+              <div style="height:6px"></div>
+              <div class="muted">${esc(run.scenario?.brief || '')}</div>
+              <div style="height:8px"></div>
               <div class="muted"><strong>${esc(week.curriculum.title)}</strong> · ${esc(week.curriculum.goal)}</div>
               <div style="height:8px"></div>
               <div class="muted">${esc(week.curriculum.brief)}</div>
               <div style="height:10px"></div>
-              <div class="metric">Budget remaining ${money(run.cash_remaining_cents)}</div>
+              <div class="metric">Headcount budget remaining ${money(run.cash_remaining_cents)}</div>
               <div class="metric">Weekly deliverable: ${esc(week.curriculum.deliverable)}</div>
               <div style="height:10px"></div>
               ${(week.world_events || []).map(event => `<div class="muted"><strong>${esc(event.title)}</strong><br>${esc(event.summary)}</div>`).join('')}

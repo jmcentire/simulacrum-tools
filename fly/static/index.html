@@ -81,7 +81,7 @@
     .empty .links a:hover { text-decoration: underline; }
     .hint { font-size: 12px; color: var(--subtle); margin-top: 8px; max-width: 880px;
             margin-left: auto; margin-right: auto; padding: 0 24px 8px; }
-    .workspace-tools { display: flex; gap: 8px; align-items: center; max-width: 880px;
+    .workspace-tools { display: none; gap: 8px; align-items: center; max-width: 880px;
                        margin: 0 auto; width: 100%; padding: 0 24px 10px; }
     .workspace-tools label { font-size: 12px; color: var(--subtle); white-space: nowrap; }
     .workspace-tools select { flex: 1; background: var(--bg); color: var(--text);
@@ -132,7 +132,7 @@
       </div>
     </div>
   </div>
-  <p class="hint">Review mode is for adversarial dialog. Teach mode is for guided professional reasoning. Direct factual recall ("what's project X?") is not its strength.</p>
+  <p class="hint">Review is for architectural review. Teach is for guided practice. Manager is a simulation of leading a software engineering team. Direct factual recall ("what's project X?") is not its strength.</p>
   <div class="workspace-tools">
     <label for="scenario-select">Practice</label>
     <select id="scenario-select">
@@ -174,6 +174,7 @@
     const modeButtons = [...document.querySelectorAll('[data-mode]')];
     const registerButtons = [...document.querySelectorAll('[data-register]')];
     const newChatButton = document.getElementById('new-chat');
+    const workspaceTools = document.querySelector('.workspace-tools');
     const scenarioSelect = document.getElementById('scenario-select');
     const useScenarioButton = document.getElementById('use-scenario');
     const dialog = [];
@@ -183,11 +184,25 @@
     let turnstileSiteKey = null;
 
     function emptyMarkup() {
+      if (getMode() === 'teach') {
+        return `
+          <div class="empty">
+            <h2>Practice deliberately.</h2>
+            <p>Pick a scenario and we will work through it together.</p>
+            <div class="links">
+              <a href="https://arxiv.org/abs/2411.10109" target="_blank" rel="noopener">Paper</a> ·
+              <a href="https://github.com/jmcentire/simulacrum" target="_blank" rel="noopener">Code</a> ·
+              <a href="/privacy">Privacy</a> ·
+              <a href="/terms">Terms</a>
+            </div>
+          </div>
+        `;
+      }
       return `
         <div class="empty">
-          <h2>A generative simulacrum.</h2>
-          <p>Built on the architecture from Park et al.'s <em>Generative Agent Simulations of 1,000 People</em> (2024) — a two-phase dispatcher routes each turn between a recall branch and an adversarial-dialog branch.</p>
-          <p>Pitch an idea, propose a frame, claim something. Professional for sharp pushback when the framing has a flaw — and direct engagement when it doesn't.</p>
+          <h2>Architectural review.</h2>
+          <p>Tell me what you are designing, what constraints you think matter, and how you are approaching it.</p>
+          <p>I will look for missing constraints, bad abstractions, false choices, and places where the design is solving the wrong problem.</p>
           <div class="links">
             <a href="https://arxiv.org/abs/2411.10109" target="_blank" rel="noopener">Paper</a> ·
             <a href="https://github.com/jmcentire/simulacrum" target="_blank" rel="noopener">Code</a> ·
@@ -264,6 +279,11 @@
         button.classList.toggle('active', active);
         button.setAttribute('aria-pressed', active ? 'true' : 'false');
       });
+      workspaceTools.style.display = m === 'teach' ? 'flex' : 'none';
+      input.placeholder = m === 'teach'
+        ? 'Bring a real problem or choose a practice scenario...'
+        : 'Tell me what you are designing and how you are approaching it...';
+      if (dialog.length === 0) render();
     }
     updateModeButton();
     modeButtons.forEach((button) => button.addEventListener('click', async () => {

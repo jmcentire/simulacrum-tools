@@ -32,7 +32,8 @@ Without `OPENAI_API_KEY` + `GENERALIST_MODEL`, the dispatcher routes everything 
 
 | Path | Method | Auth | Purpose |
 |---|---|---|---|
-| `/` | GET | session | Redirect to simulator |
+| `/` | GET | none / session | Product landing page, or redirect signed-in users to Review |
+| `/chat-ui` | GET | session | Review / Teach chat workspace |
 | `/sign-in` | GET / POST | none | Magic-link sign-in |
 | `/sign-up` | GET / POST | invite code | One-time-code signup |
 | `/logout` | GET | cookie | Clear session cookie |

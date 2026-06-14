@@ -202,11 +202,59 @@ def _auth_page(title: str, body: str, message: str = "") -> HTMLResponse:
     """)
 
 
+def _landing_page() -> HTMLResponse:
+    return HTMLResponse("""
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Simulacrum</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#1a1a1a; color:#e8e8e8; margin:0; }
+          main { max-width:640px; margin:96px auto; padding:28px; }
+          h1 { font-size:30px; font-weight:500; margin:0 0 16px; }
+          p { color:#a1a1aa; line-height:1.65; font-size:16px; margin:0 0 16px; }
+          .actions { margin-top:28px; display:flex; gap:12px; align-items:center; }
+          a.button { background:#ffb86c; color:#1a1a1a; border-radius:4px; padding:10px 14px; font-weight:700; text-decoration:none; }
+          a.contact { color:#6cb5ff; text-decoration:none; }
+          a.contact:hover { text-decoration:underline; }
+          .technical { margin-top:42px; padding-top:22px; border-top:1px solid #333; }
+          .technical h2 { font-size:16px; font-weight:500; margin:0 0 10px; }
+          .technical p { font-size:14px; line-height:1.6; margin-bottom:10px; }
+          .links a { color:#6cb5ff; text-decoration:none; margin-right:10px; font-size:13px; }
+          .links a:hover { text-decoration:underline; }
+        </style>
+      </head>
+      <body><main>
+        <h1>Simulacrum</h1>
+        <p>Simulacrum provides software engineering architectural review, professional practice for engineers, and management simulation for software teams.</p>
+        <p>It is designed to help practitioners examine assumptions, improve judgment, and understand the consequences of technical and managerial decisions.</p>
+        <div class="actions">
+          <a class="button" href="/sign-in">Sign in</a>
+          <a class="contact" href="mailto:hello@simulacrum.tools">For access, contact hello@simulacrum.tools</a>
+        </div>
+        <div class="technical">
+          <h2>A generative simulacrum.</h2>
+          <p>Built on the architecture from Park et al.'s <em>Generative Agent Simulations of 1,000 People</em> (2024): a two-phase dispatcher routes each turn between a recall branch and an adversarial-dialog branch.</p>
+          <p>Pitch an idea, propose a frame, claim something. Professional for sharp pushback when the framing has a flaw, and direct engagement when it does not.</p>
+          <div class="links">
+            <a href="https://arxiv.org/abs/2411.10109" target="_blank" rel="noopener">Paper</a>
+            <a href="https://github.com/jmcentire/simulacrum" target="_blank" rel="noopener">Code</a>
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+          </div>
+        </div>
+      </main></body>
+    </html>
+    """)
+
+
 @app.get("/")
 async def index(simulacrum_session: Optional[str] = Cookie(None)):
     if not _current_user(simulacrum_session):
-        return RedirectResponse("/sign-in")
-    return RedirectResponse("/simulator")
+        return _landing_page()
+    return RedirectResponse("/chat-ui")
 
 
 @app.get("/chat-ui")
@@ -226,7 +274,7 @@ async def simulator_ui(simulacrum_session: Optional[str] = Cookie(None)):
 @app.get("/sign-in")
 async def sign_in_page(simulacrum_session: Optional[str] = Cookie(None)):
     if _current_user(simulacrum_session):
-        return RedirectResponse("/simulator")
+        return RedirectResponse("/chat-ui")
     return _auth_page(
         "Sign in",
         """
@@ -235,7 +283,7 @@ async def sign_in_page(simulacrum_session: Optional[str] = Cookie(None)):
           <input type="email" name="email" placeholder="you@example.com" required autofocus>
           <button type="submit">Send magic link</button>
         </form>
-        <p>Need access? <a href="/sign-up">Sign up with an invite code</a>.</p>
+        <p>Need access? Contact <a href="mailto:hello@simulacrum.tools">hello@simulacrum.tools</a>.</p>
         """,
     )
 
@@ -257,7 +305,7 @@ async def sign_in(email: str = Form(...)):
 @app.get("/sign-up")
 async def sign_up_page(simulacrum_session: Optional[str] = Cookie(None)):
     if _current_user(simulacrum_session):
-        return RedirectResponse("/simulator")
+        return RedirectResponse("/chat-ui")
     return _auth_page(
         "Sign up",
         """
@@ -296,7 +344,7 @@ async def verify_magic_link(token: str):
             "Link expired",
             "<p>This link is invalid or expired.</p><p><a href=\"/sign-in\">Request a new link</a></p>",
         )
-    response = RedirectResponse("/simulator")
+    response = RedirectResponse("/chat-ui")
     response.set_cookie(
         auth.SESSION_COOKIE,
         session_token,

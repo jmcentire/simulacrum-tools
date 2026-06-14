@@ -37,6 +37,16 @@ every browser session with a magic link. Defenses are layered:
 3. **Cloudflare edge** (recommended in front) — Bot Fight Mode, per-IP rate limiting, DDoS absorption.
 4. **Provider-side budget cap** — set a daily spend cap on your Anthropic key in the Anthropic console. The ultimate floor.
 
+Generate more one-time invite codes with:
+
+```bash
+python3 scripts/generate_signup_codes.py --count 10 --sync-fly
+```
+
+The script appends raw codes to the gitignored `signup_codes.txt` file and
+updates the Fly `SIGNUP_CODES` secret. The app stores only hashed codes in
+SQLite, so issued codes remain one-time use.
+
 ## Quick start (local CLI)
 
 ```bash

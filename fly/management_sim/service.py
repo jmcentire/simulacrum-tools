@@ -26,6 +26,7 @@ from .relationships import (
     remove_persona_relationships,
 )
 from .retention import advance_retention_watch, choose_voluntary_exit, initial_retention_watch
+from .scenarios import HEADCOUNT_BUDGET_CENTS, choose_scenario
 from .structure import structure_pressure, team_structure
 from .work import advance_workstreams, initial_workstreams, public_workstreams, work_artifacts, work_pressure
 
@@ -69,11 +70,23 @@ class ManagementSimService:
         self.candidate_interviews = CandidateInterviewService()
         self.assessor = HypervisorAssessor()
 
-    def create_run(self, user_id: str, mission: str, budget_cents: int) -> dict[str, Any]:
+    def create_run(
+        self,
+        user_id: str,
+        mission: str,
+        budget_cents: int,
+        scenario: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         persistence.archive_active_runs(user_id)
         run_id = db.new_id()
         team = list(STARTING_TEAM_IDS)
         salary = sum(self.personas.get(persona_id).salary_cents for persona_id in team)
+        scenario = scenario or {
+            "id": "workflow-platform",
+            "title": "Workflow Platform",
+            "mission": mission,
+            "brief": "The company wants a reliable workflow platform with an oversized roadmap.",
+        }
         state = {
             "run_id": run_id,
             "phase": "daily_loop",
@@ -81,6 +94,7 @@ class ManagementSimService:
             "week": 1,
             "day_in_week": 1,
             "mission": mission,
+            "scenario": scenario,
             "budget_cents": budget_cents,
             "cash_remaining_cents": budget_cents - salary,
             "team": team,
@@ -122,6 +136,15 @@ class ManagementSimService:
         self._ensure_week_artifacts(user_id, state)
         return state
 
+    def create_random_run(self, user_id: str) -> dict[str, Any]:
+        scenario = choose_scenario()
+        return self.create_run(
+            user_id,
+            scenario["mission"],
+            HEADCOUNT_BUDGET_CENTS,
+            scenario=scenario,
+        )
+
     def load_active_run(self, user_id: str) -> dict[str, Any] | None:
         state = persistence.load_active_run(user_id)
         if not state:
@@ -152,6 +175,7 @@ class ManagementSimService:
             "week": state["week"],
             "day_in_week": state["day_in_week"],
             "mission": state["mission"],
+            "scenario": state.get("scenario"),
             "budget_cents": state["budget_cents"],
             "cash_remaining_cents": state["cash_remaining_cents"],
             "team": team,
@@ -190,6 +214,7 @@ class ManagementSimService:
             "week": state["week"],
             "day_in_week": state["day_in_week"],
             "curriculum": plan_for_day(state["day"]),
+            "scenario": state.get("scenario"),
             "reports": reports,
             "product": state["product"],
             "tracking_focus": state["tracking_focus"],
@@ -705,6 +730,13 @@ class ManagementSimService:
             changed = True
         if "world_events" not in state:
             state["world_events"] = []
+        if "scenario" not in state:
+            state["scenario"] = {
+                "id": "workflow-platform",
+                "title": "Workflow Platform",
+                "mission": state["mission"],
+                "brief": "The company wants a reliable workflow platform with an oversized roadmap.",
+            }
             changed = True
         if "retention_watch" not in state:
             state["retention_watch"] = initial_retention_watch(state["team"])
