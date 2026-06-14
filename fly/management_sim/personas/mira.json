@@ -1,0 +1,70 @@
+{
+  "backfill_fund_cents": 3024000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 86,
+      "outsources": ["release planning", "stakeholder negotiation"],
+      "owns": ["product framing", "customer problem definition"],
+      "preferred": 86
+    },
+    "communication_style": "insightful, narrative-heavy, difficult to pin down",
+    "compatibility_tags": ["independent"],
+    "energy": {
+      "baseline": 68,
+      "drains": ["implementation details", "routine follow-up"],
+      "energizers": ["customer synthesis", "strategy work"],
+      "resilience": 55
+    },
+    "friction": {
+      "baseline": 22,
+      "tolerance": 55,
+      "triggers": ["unclear priorities", "constant context switching", "being asked to absorb avoidable chaos"]
+    },
+    "friction_tags": ["abstract-first"],
+    "mastery": {
+      "baseline": 90,
+      "drains": ["implementation details", "routine follow-up"],
+      "energizers": ["customer synthesis", "strategy work"],
+      "focus": "seeing the hidden customer problem",
+      "preferred": 84
+    },
+    "purpose": {
+      "anti_purpose": ["small operational work", "checking boxes"],
+      "baseline": 72,
+      "meaningful_outcomes": ["seeing the hidden customer problem", "principal"],
+      "mission_hook": "seeing the hidden customer problem"
+    },
+    "traits": {
+      "ambiguity_tolerance": 93,
+      "autonomy_need": 86,
+      "burnout_risk": 48,
+      "coachability": 61,
+      "collaboration": 76,
+      "crisis_response": "deflects",
+      "integrity": 80,
+      "mentorship": 58,
+      "politics": "coalition",
+      "ramp_rate": 88,
+      "reliability": 51
+    }
+  },
+  "id": "mira",
+  "name": "Mira Sol",
+  "role": "Senior Product Engineer",
+  "salary_cents": 16800000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 82,
+    "backend": 66,
+    "frontend": 78,
+    "infra": 42,
+    "product": 96,
+    "quality": 57
+  },
+  "visible": {
+    "ambition": "principal",
+    "interview": "insightful, narrative-heavy, connects customer pain to architecture",
+    "motivation": "impact",
+    "seniority": "senior"
+  }
+}

@@ -26,15 +26,21 @@ def initial_relationships(
             left_tags = set(left_persona.hidden["compatibility_tags"])
             right_tags = set(right_persona.hidden["compatibility_tags"])
             shared_tags = len(left_tags & right_tags)
+            left_friction_tags = set(left_persona.hidden["friction_tags"])
+            right_friction_tags = set(right_persona.hidden["friction_tags"])
+            shared_friction_tags = len(left_friction_tags & right_friction_tags)
             skill_overlap = sum(
                 min(left_persona.skills.get(skill, 0), right_persona.skills.get(skill, 0))
                 for skill in set(left_persona.skills) & set(right_persona.skills)
             ) // max(1, len(set(left_persona.skills) & set(right_persona.skills)))
             complementarity = abs(left_persona.skills.get("architecture", 50) - right_persona.skills.get("product", 50))
             autonomy_gap = abs(left_persona.hidden["autonomy"]["preferred"] - right_persona.hidden["autonomy"]["preferred"])
+            left_strong = left_persona.hidden["autonomy"]["preferred"] >= 82 and left_persona.hidden["traits"]["politics"] in {"status", "coalition"}
+            right_strong = right_persona.hidden["autonomy"]["preferred"] >= 82 and right_persona.hidden["traits"]["politics"] in {"status", "coalition"}
+            strong_personality_collision = 8 if left_strong and right_strong else 0
             relationship = {
-                "trust": _clamp(48 + shared_tags * 5 + skill_overlap // 15 - autonomy_gap // 18 + rng.randint(-4, 4)),
-                "friction": _clamp(28 + autonomy_gap // 10 + max(0, 55 - shared_tags * 12) // 6 + rng.randint(-3, 5)),
+                "trust": _clamp(48 + shared_tags * 5 + skill_overlap // 15 - autonomy_gap // 18 - strong_personality_collision // 2 + rng.randint(-4, 4)),
+                "friction": _clamp(28 + autonomy_gap // 10 + max(0, 55 - shared_tags * 12) // 6 + shared_friction_tags * 4 + strong_personality_collision + rng.randint(-3, 5)),
                 "dependency": _clamp(24 + complementarity // 3 + skill_overlap // 8 + rng.randint(-4, 5)),
                 "knowledge_flow": _clamp(42 + shared_tags * 6 + skill_overlap // 12 + rng.randint(-4, 5)),
             }

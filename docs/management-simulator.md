@@ -12,10 +12,14 @@ The current module implements a twenty-session curriculum loop:
 - choose what product evidence to track
 - generate simulated-week reports from hidden persona state
 - conduct guarded 1:1 conversations
+- interview candidates with constrained behavioral probes rather than a clean
+  self-report scorecard
 - spend finite daily attention on 1:1s or artifact investigation rather than
   seeing every signal for free
 - inspect noisy artifact packets from planning, Slack, code review, stakeholder,
   and calendar channels
+- watch work move through scoped, in-progress, review, rework, done, and
+  maintenance states, including handoff debt when an owner leaves
 - write an end-of-day notebook: observations, hypotheses, questions, decision,
   prediction, and what would change the manager's mind
 - advance the world asynchronously and let consequences surface
@@ -30,11 +34,15 @@ The current module implements a twenty-session curriculum loop:
 
 `fly/management_sim/` is split into:
 
-- `persona_store.py` loads 27 tracked persona files
+- `persona_store.py` loads 30 tracked persona files
 - `latent_state.py` applies deterministic action effects and seeded world ticks
 - `observations.py` converts hidden state into concrete, indirect clues
 - `relationships.py` maintains hidden pairwise trust, friction, dependency,
   knowledge flow, and generates multi-channel artifact packets
+- `work.py` models closure, detail, tracking, decision force, work-state
+  transitions, and handoff debt
+- `interviews.py` generates noisy candidate interview signals from constrained
+  prompts without exposing hidden persona state
 - `guard.py` blocks prompt injection/state probing and audits output leakage
 - `artifacts.py` generates reports and persona dialogue
 - `persistence.py` stores runs, snapshots, artifacts, turns, and event logs

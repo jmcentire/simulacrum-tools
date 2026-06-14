@@ -12,9 +12,11 @@ import db  # noqa: E402
 from management_sim.guard import InputGuard, OutputAuditor  # noqa: E402
 from management_sim.latent_state import apply_action, initial_state  # noqa: E402
 from management_sim.relationships import relationship_context  # noqa: E402
+from management_sim.relationships import initial_relationships  # noqa: E402
 from management_sim.persona_store import PersonaStore  # noqa: E402
 from management_sim.service import ManagementSimService  # noqa: E402
 from management_sim.structure import team_structure  # noqa: E402
+from management_sim.work import advance_workstreams, initial_workstreams  # noqa: E402
 from management_sim import persistence  # noqa: E402
 
 
@@ -35,7 +37,7 @@ class ManagementSimTests(unittest.TestCase):
 
     def test_persona_store_loads_rich_files(self):
         personas = PersonaStore().load_all()
-        self.assertGreaterEqual(len(personas), 24)
+        self.assertGreaterEqual(len(personas), 28)
         maya = PersonaStore().get("maya")
         self.assertIn("mastery", maya.hidden)
         self.assertIn("autonomy", maya.hidden)
@@ -267,7 +269,12 @@ class ManagementSimTests(unittest.TestCase):
                 service.select_interviews("user-1", pool[:2])
             if day == 5:
                 state = service.load_active_run("user-1")
-                service.choose_hire("user-1", state["milestones"]["week_1_hire"]["pool"][0])
+                affordable = next(
+                    persona_id
+                    for persona_id in state["milestones"]["week_1_hire"]["pool"]
+                    if service.personas.get(persona_id).salary_cents <= state["cash_remaining_cents"]
+                )
+                service.choose_hire("user-1", affordable)
             if day == 9:
                 state = service.load_active_run("user-1")
                 service.select_terminations("user-1", state["team"][-2:])
@@ -288,6 +295,134 @@ class ManagementSimTests(unittest.TestCase):
         reduced = team_structure(["maya", "jonah", "trent"], personas, {}, "build")
         self.assertLessEqual(reduced["coverage"], initial["coverage"])
         self.assertLess(reduced["redundancy"], initial["redundancy"])
+
+    def test_expensive_amazing_candidate_can_be_out_of_range(self):
+        service = ManagementSimService()
+        state = service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        self.assertIn("quinn", state["milestones"]["week_1_hire"]["pool"])
+        self.assertGreater(service.personas.get("quinn").salary_cents, state["cash_remaining_cents"])
+
+    def test_candidate_interview_gives_indirect_execution_clues(self):
+        service = ManagementSimService()
+        service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        state = service.load_active_run("user-1")
+        for _ in range(3):
+            service.set_tracking_focus("user-1", ["delivery"])
+            service.submit_day_report(
+                "user-1",
+                {
+                    "observations": "The team is moving, but the roadmap has too many parallel bets.",
+                    "hypotheses": "The likely constraint is overload rather than lack of capability.",
+                    "questions": "I need to know which dependency is forcing context switching.",
+                    "decision": "I will clarify scope before asking for more output.",
+                    "change_mind": "I will change my mind if the next report shows quality is the real problem.",
+                    "predictions": [],
+                },
+            )
+            service.advance_day("user-1", expected_day=state["day"])
+            state = service.load_active_run("user-1")
+        pool = state["milestones"]["week_1_hire"]["pool"]
+        self.assertIn("xavier", pool)
+        service.select_interviews("user-1", ["xavier", pool[1] if pool[1] != "xavier" else pool[2]])
+        reply = service.send_candidate_interview("user-1", "xavier", "Tell me about how you finish work and close deadlines.")
+        self.assertIn("architecture", reply["response_text"].lower())
+        self.assertNotIn("closure", reply["response_text"].lower())
+        self.assertNotIn("reliability", reply["response_text"].lower())
+        scenario = service.send_candidate_interview("user-1", "xavier", "Here is a half-spec feature with a two-week deadline. What do you ship first?")
+        self.assertIn("clarifying", scenario["response_text"].lower())
+
+    def test_collaborator_heavy_team_stalls_decision_work_without_leader(self):
+        personas = {persona.id: persona for persona in PersonaStore().load_all()}
+        team = ["faye", "omar", "jules", "wren", "tariq"]
+        workstreams = initial_workstreams(team, personas)
+        team_state = {persona_id: initial_state(personas[persona_id]).to_dict() for persona_id in team}
+        advanced = workstreams
+        for day in range(3):
+            advanced = advance_workstreams(advanced, team, team_state, personas, [], f"collaborator-team:{day}")
+        blocked = [item for item in advanced if item["state"] == "blocked"]
+        self.assertTrue(any("decision" in item["blocked_reason"].lower() for item in blocked))
+        self.assertTrue(any(item["decision_debt"] >= 3 for item in blocked))
+
+    def test_thinker_heavy_team_leaves_work_nearly_done_without_closure(self):
+        personas = {persona.id: persona for persona in PersonaStore().load_all()}
+        team = ["xavier", "theo", "mira"]
+        workstreams = initial_workstreams(team, personas)
+        team_state = {persona_id: initial_state(personas[persona_id]).to_dict() for persona_id in team}
+        for day in range(7):
+            workstreams = advance_workstreams(workstreams, team, team_state, personas, [], f"thinker-team:{day}")
+        nearly_done = [item for item in workstreams if item["state"] in {"review", "blocked"} and item["completion"] < 100]
+        self.assertTrue(any("checklist" in item["blocked_reason"] or "cleanup" in item["blocked_reason"] for item in nearly_done))
+
+    def test_balanced_team_closes_more_work_than_thinker_heavy_team(self):
+        personas = {persona.id: persona for persona in PersonaStore().load_all()}
+        thinker_team = ["xavier", "theo", "mira"]
+        balanced_team = ["maya", "jonah", "elena", "trent", "rhea"]
+        thinker_work = initial_workstreams(thinker_team, personas)
+        balanced_work = initial_workstreams(balanced_team, personas)
+        thinker_state = {persona_id: initial_state(personas[persona_id]).to_dict() for persona_id in thinker_team}
+        balanced_state = {persona_id: initial_state(personas[persona_id]).to_dict() for persona_id in balanced_team}
+        for day in range(8):
+            thinker_work = advance_workstreams(thinker_work, thinker_team, thinker_state, personas, [], f"thinker-benchmark:{day}")
+            balanced_work = advance_workstreams(balanced_work, balanced_team, balanced_state, personas, [], f"balanced-benchmark:{day}")
+        thinker_done = sum(1 for item in thinker_work if item["state"] in {"done", "maintenance"})
+        balanced_done = sum(1 for item in balanced_work if item["state"] in {"done", "maintenance"})
+        self.assertLess(thinker_done, balanced_done)
+
+    def test_decision_force_changes_collaborator_team_outcome(self):
+        personas = {persona.id: persona for persona in PersonaStore().load_all()}
+        collaborator_team = ["faye", "omar", "jules", "wren", "tariq"]
+        decision_team = ["faye", "omar", "jules", "wren", "xavier"]
+        collaborator_work = initial_workstreams(collaborator_team, personas)
+        decision_work = initial_workstreams(decision_team, personas)
+        collaborator_state = {persona_id: initial_state(personas[persona_id]).to_dict() for persona_id in collaborator_team}
+        decision_state = {persona_id: initial_state(personas[persona_id]).to_dict() for persona_id in decision_team}
+        for day in range(8):
+            collaborator_work = advance_workstreams(collaborator_work, collaborator_team, collaborator_state, personas, [], f"collab-benchmark:{day}")
+            decision_work = advance_workstreams(decision_work, decision_team, decision_state, personas, [], f"decision-benchmark:{day}")
+        collaborator_blocked = sum(1 for item in collaborator_work if item["state"] == "blocked")
+        decision_blocked = sum(1 for item in decision_work if item["state"] == "blocked")
+        self.assertGreater(collaborator_blocked, decision_blocked)
+
+    def test_owner_departure_creates_handoff_debt_not_permanent_done_work_block(self):
+        personas = {persona.id: persona for persona in PersonaStore().load_all()}
+        team = ["maya", "elena", "rhea"]
+        workstreams = initial_workstreams(team, personas)
+        workstreams[0]["state"] = "maintenance"
+        workstreams[0]["completion"] = 100
+        departing_owner = workstreams[0]["owner_id"]
+        remaining_team = [persona_id for persona_id in team if persona_id != departing_owner]
+        team_state = {persona_id: initial_state(personas[persona_id]).to_dict() for persona_id in remaining_team}
+        advanced = advance_workstreams(workstreams, remaining_team, team_state, personas, [], "owner-departure")
+        moved = advanced[0]
+        self.assertEqual(moved["state"], "maintenance")
+        self.assertNotEqual(moved["owner_id"], departing_owner)
+        self.assertGreater(moved["handoff_debt"], 0)
+
+    def test_scope_pivot_rolls_back_work_that_was_already_in_flight(self):
+        personas = {persona.id: persona for persona in PersonaStore().load_all()}
+        team = ["maya", "jonah", "elena", "trent", "rhea"]
+        workstreams = initial_workstreams(team, personas)
+        team_state = {persona_id: initial_state(personas[persona_id]).to_dict() for persona_id in team}
+        workstreams[0]["state"] = "review"
+        workstreams[0]["completion"] = 82
+        advanced = advance_workstreams(
+            workstreams,
+            team,
+            team_state,
+            personas,
+            [],
+            "scope-pivot",
+            [{"kind": "scope_pivot", "status": "active"}],
+        )
+        self.assertEqual(advanced[0]["state"], "rework")
+        self.assertLess(advanced[0]["completion"], 82)
+        self.assertIn("pivot", advanced[0]["blocked_reason"])
+
+    def test_multiple_strong_personalities_start_with_more_friction(self):
+        personas = {persona.id: persona for persona in PersonaStore().load_all()}
+        strong = initial_relationships("strong-team", ["xavier", "gavin"], personas)
+        collaborative = initial_relationships("collab-team", ["faye", "omar"], personas)
+        self.assertGreater(strong["gavin|xavier"]["friction"], collaborative["faye|omar"]["friction"])
 
 
 if __name__ == "__main__":

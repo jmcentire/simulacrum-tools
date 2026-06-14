@@ -11,6 +11,7 @@ from . import persistence
 from .artifacts import ArtifactService
 from .assessor import HypervisorAssessor
 from .curriculum import day_in_week, plan_for_day, week_for_day
+from .interviews import CandidateInterviewService
 from .latent_state import ACTION_VOCABULARY, advance_day, apply_action, initial_state, state_hash
 from .models import HiddenState
 from .observations import persona_observations, product_observations
@@ -25,6 +26,7 @@ from .relationships import (
     remove_persona_relationships,
 )
 from .structure import structure_pressure, team_structure
+from .work import advance_workstreams, initial_workstreams, public_workstreams, work_artifacts, work_pressure
 
 
 STARTING_TEAM_IDS = ["maya", "jonah", "elena", "trent", "rhea"]
@@ -39,6 +41,7 @@ class ManagementSimService:
     def __init__(self):
         self.personas = PersonaStore()
         self.artifacts = ArtifactService()
+        self.candidate_interviews = CandidateInterviewService()
         self.assessor = HypervisorAssessor()
 
     def create_run(self, user_id: str, mission: str, budget_cents: int) -> dict[str, Any]:
@@ -66,6 +69,8 @@ class ManagementSimService:
             "artifact_inbox": [],
             "day_actions": [],
             "world_events": [],
+            "workstreams": initial_workstreams(team, self._persona_map(team)),
+            "candidate_interviews": {},
             "milestones": {
                 "week_1_hire": {
                     "pool": self._candidate_ids(run_id, "week_1_hire", team),
@@ -127,6 +132,7 @@ class ManagementSimService:
             "attention": state["attention"],
             "artifact_inbox": public_inbox(state["artifact_inbox"]),
             "world_events": self._public_world_events(state),
+            "workstreams": public_workstreams(state["workstreams"], self._persona_map(state["team"])),
             "curriculum": plan_for_day(state["day"]),
             "reports_due": self._reports_due(state),
             "milestones": self._public_milestones(state),
@@ -162,6 +168,7 @@ class ManagementSimService:
             "attention": state["attention"],
             "artifact_inbox": public_inbox(state["artifact_inbox"]),
             "world_events": self._public_world_events(state),
+            "workstreams": public_workstreams(state["workstreams"], self._persona_map(state["team"])),
             "product_observations": product_observations(
                 {**state["product"], "pressure": state["product_pressure"]},
                 team_states,
@@ -193,6 +200,30 @@ class ManagementSimService:
             {"persona_id": persona_id, "turn_number": response["turn_number"], "state_hash": state_hash(hidden)},
         )
         return response
+
+    def send_candidate_interview(self, user_id: str, candidate_id: str, message: str) -> dict[str, Any]:
+        state = self._require_run(user_id)
+        pool = self._active_candidate_pool_ids(state)
+        if candidate_id not in pool:
+            raise ValueError("candidate is not in the active interview pool")
+        milestone = state["milestones"]["week_1_hire"] if state["day"] in (4, 5) else state["milestones"]["week_2_reduction"]
+        if state["day"] in (4, 5) and candidate_id not in milestone["interview_ids"]:
+            raise ValueError("choose the candidate for an interview before asking questions")
+        history = state["candidate_interviews"].setdefault(candidate_id, [])
+        if not history:
+            self._spend_attention(state, "candidate_interview", candidate_id, f"Interviewed candidate {candidate_id}.")
+        persona = self.personas.get(candidate_id)
+        response = self.candidate_interviews.reply(persona, message, history)
+        history.append({"role": "manager", "content": message})
+        history.append({"role": "candidate", "content": response})
+        persistence.save_run(user_id, state)
+        persistence.append_event(
+            state["run_id"],
+            user_id,
+            "candidate_interview_turn",
+            {"day": state["day"], "candidate_id": candidate_id, "summary": f"Interviewed {persona.name}."},
+        )
+        return {"candidate_id": candidate_id, "response_text": response, "turn_number": len(history) // 2}
 
     def investigate_artifact(self, user_id: str, artifact_id: str) -> dict[str, Any]:
         state = self._require_run(user_id)
@@ -477,6 +508,15 @@ class ManagementSimService:
             self._persona_map(state["team"]),
             state["day_actions"],
         )
+        state["workstreams"] = advance_workstreams(
+            state["workstreams"],
+            state["team"],
+            state["team_state"],
+            self._persona_map(state["team"]),
+            state["day_actions"],
+            f"{state['run_id']}:day:{state['day']}:work",
+            state["world_events"],
+        )
         next_product = self._advance_product_metrics(state, next_team_state)
         self._resolve_predictions(user_id, state, before_by_persona, next_team_state, before_product, next_product)
         state["product"] = next_product
@@ -627,6 +667,12 @@ class ManagementSimService:
         if "world_events" not in state:
             state["world_events"] = []
             changed = True
+        if "workstreams" not in state:
+            state["workstreams"] = initial_workstreams(state["team"], self._persona_map(state["team"]))
+            changed = True
+        if "candidate_interviews" not in state:
+            state["candidate_interviews"] = {}
+            changed = True
         if "product_pressure" not in state:
             state["product_pressure"] = 74
             changed = True
@@ -679,7 +725,13 @@ class ManagementSimService:
         ids = [persona.id for persona in self.personas.load_all() if persona.id not in set(exclude_ids)]
         rng = random.Random(f"{run_id}:{salt}")
         rng.shuffle(ids)
-        return ids[:5]
+        selected: list[str] = []
+        for frontier_candidate in ("quinn", "xavier"):
+            if frontier_candidate in ids:
+                selected.append(frontier_candidate)
+                ids.remove(frontier_candidate)
+        selected.extend(ids[: max(0, 5 - len(selected))])
+        return selected
 
     def _ensure_backfill_pool(self, state: dict[str, Any]) -> None:
         milestone = state["milestones"]["week_2_reduction"]
@@ -695,7 +747,13 @@ class ManagementSimService:
                 "kind": "week_1_hire",
                 "interview_ids": milestone["interview_ids"],
                 "selected_id": milestone["selected_id"],
-                "candidates": [self.personas.get(persona_id).public_summary() for persona_id in milestone["pool"]],
+                "candidates": [
+                    {
+                        **self.personas.get(persona_id).public_summary(),
+                        "interview_history": state["candidate_interviews"].get(persona_id, []),
+                    }
+                    for persona_id in milestone["pool"]
+                ],
             }
         if state["week"] == 2 and state["day_in_week"] in (4, 5):
             self._ensure_backfill_pool(state)
@@ -703,9 +761,23 @@ class ManagementSimService:
             return {
                 "kind": "week_2_backfill",
                 "selected_id": milestone["backfill_selected_id"],
-                "candidates": [self.personas.get(persona_id).public_summary() for persona_id in milestone["backfill_pool"]],
+                "candidates": [
+                    {
+                        **self.personas.get(persona_id).public_summary(),
+                        "interview_history": state["candidate_interviews"].get(persona_id, []),
+                    }
+                    for persona_id in milestone["backfill_pool"]
+                ],
             }
         return None
+
+    def _active_candidate_pool_ids(self, state: dict[str, Any]) -> list[str]:
+        if state["day"] in (4, 5):
+            return state["milestones"]["week_1_hire"]["pool"]
+        if state["week"] == 2 and state["day_in_week"] in (4, 5):
+            self._ensure_backfill_pool(state)
+            return state["milestones"]["week_2_reduction"]["backfill_pool"]
+        return []
 
     def _public_milestones(self, state: dict[str, Any]) -> dict[str, Any]:
         week_1 = state["milestones"]["week_1_hire"]
@@ -795,6 +867,18 @@ class ManagementSimService:
             self._persona_map(state["team"]),
             state["product_pressure"],
         )
+        for item in work_artifacts(state["workstreams"], self._persona_map(state["team"])):
+            state["artifact_inbox"].append(
+                {
+                    "id": f"{state['day']}:work:{item['title'].lower().replace(' ', '-')}",
+                    "kind": "work",
+                    "channel": item["channel"],
+                    "title": item["title"],
+                    "preview": item["title"],
+                    "detail": item["detail"],
+                    "revealed": False,
+                }
+            )
         for event in reversed(self._public_world_events(state)):
             if event["start_day"] == state["day"]:
                 state["artifact_inbox"].insert(
@@ -935,8 +1019,9 @@ class ManagementSimService:
         rng = random.Random(f"{state['run_id']}:day:{state['day']}:product")
         prior = state["product"]
         event_pressure = self._world_event_pressure(state)
-        velocity = _clamp(prior["velocity"] + (avg_output - 55) // 8 - max(0, avg_burnout - 65) // 10 - event_pressure // 8 + rng.randint(-3, 3))
-        error_rate = _clamp(prior["error_rate"] + (55 - avg_quality) // 7 + max(0, avg_burnout - 55) // 10 + event_pressure // 10 + rng.randint(-2, 3))
+        work_drag = work_pressure(state["workstreams"])
+        velocity = _clamp(prior["velocity"] + (avg_output - 55) // 8 - max(0, avg_burnout - 65) // 10 - event_pressure // 8 - work_drag // 4 + rng.randint(-3, 3))
+        error_rate = _clamp(prior["error_rate"] + (55 - avg_quality) // 7 + max(0, avg_burnout - 55) // 10 + event_pressure // 10 + work_drag // 3 + rng.randint(-2, 3))
         alignment = _clamp(prior["alignment"] + (avg_purpose - 55) // 8 + (avg_trust - 50) // 12 - event_pressure // 12 + rng.randint(-2, 2))
         total_value = _clamp(prior["total_value"] + (velocity - 50) // 8 + (alignment - 50) // 10 - error_rate // 20 + rng.randint(-2, 3))
         return {"velocity": velocity, "error_rate": error_rate, "alignment": alignment, "total_value": total_value}

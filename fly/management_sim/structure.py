@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .models import PersonaDefinition
+from .work import work_style
 
 
 CRITICAL_SKILLS = ("architecture", "backend", "frontend", "infra", "product", "quality")
@@ -17,7 +18,17 @@ def team_structure(
     phase: str,
 ) -> dict[str, int]:
     if not team:
-        return {"coverage": 0, "redundancy": 0, "bus_factor": 0, "phase_fit": 0, "cohesion": 0}
+        return {
+            "coverage": 0,
+            "redundancy": 0,
+            "bus_factor": 0,
+            "phase_fit": 0,
+            "cohesion": 0,
+            "closure_coverage": 0,
+            "detail_coverage": 0,
+            "tracking_coverage": 0,
+            "decision_coverage": 0,
+        }
 
     coverage_values = []
     redundancy_counts = []
@@ -55,6 +66,12 @@ def team_structure(
         ]
     phase_fit = sum(fit_values) // len(fit_values)
 
+    styles = [work_style(personas[persona_id]) for persona_id in team]
+    closure_coverage = max(style["closure"] for style in styles)
+    detail_coverage = max(style["detail"] for style in styles)
+    tracking_coverage = max(style["tracking"] for style in styles)
+    decision_coverage = max(style["decision_force"] for style in styles)
+
     edges = list(relationships.values())
     cohesion = 55
     if edges:
@@ -66,6 +83,10 @@ def team_structure(
         "bus_factor": bus_factor,
         "phase_fit": phase_fit,
         "cohesion": cohesion,
+        "closure_coverage": closure_coverage,
+        "detail_coverage": detail_coverage,
+        "tracking_coverage": tracking_coverage,
+        "decision_coverage": decision_coverage,
     }
 
 
@@ -76,4 +97,8 @@ def structure_pressure(structure: dict[str, int]) -> int:
         + max(0, 55 - structure["bus_factor"]) // 10
         + max(0, 58 - structure["phase_fit"]) // 10
         + max(0, 45 - structure["cohesion"]) // 10
+        + max(0, 60 - structure["closure_coverage"]) // 10
+        + max(0, 60 - structure["detail_coverage"]) // 10
+        + max(0, 58 - structure["tracking_coverage"]) // 10
+        + max(0, 55 - structure["decision_coverage"]) // 10
     )

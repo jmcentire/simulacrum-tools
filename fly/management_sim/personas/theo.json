@@ -1,0 +1,70 @@
+{
+  "backfill_fund_cents": 3456000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 92,
+      "outsources": ["stakeholder negotiation", "release planning"],
+      "owns": ["technical approach", "problem framing", "architecture"],
+      "preferred": 92
+    },
+    "communication_style": "brilliant, abstract, patient when challenged",
+    "compatibility_tags": ["independent"],
+    "energy": {
+      "baseline": 70,
+      "drains": ["status reporting", "repetitive cleanup"],
+      "energizers": ["new problem spaces", "deep design work"],
+      "resilience": 60
+    },
+    "friction": {
+      "baseline": 20,
+      "tolerance": 60,
+      "triggers": ["unclear priorities", "constant context switching", "being asked to finish someone else's rough work"]
+    },
+    "friction_tags": ["abstract-first"],
+    "mastery": {
+      "baseline": 94,
+      "drains": ["status reporting", "repetitive cleanup"],
+      "energizers": ["new problem spaces", "deep design work"],
+      "focus": "finding the elegant underlying model",
+      "preferred": 90
+    },
+    "purpose": {
+      "anti_purpose": ["maintenance work", "shipping something inelegant"],
+      "baseline": 66,
+      "meaningful_outcomes": ["finding the elegant underlying model", "staff"],
+      "mission_hook": "finding the elegant underlying model"
+    },
+    "traits": {
+      "ambiguity_tolerance": 95,
+      "autonomy_need": 92,
+      "burnout_risk": 45,
+      "coachability": 54,
+      "collaboration": 58,
+      "crisis_response": "improvise",
+      "integrity": 82,
+      "mentorship": 52,
+      "politics": "neutral",
+      "ramp_rate": 94,
+      "reliability": 48
+    }
+  },
+  "id": "theo",
+  "name": "Theo Voss",
+  "role": "Staff Architect",
+  "salary_cents": 19200000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 97,
+    "backend": 84,
+    "frontend": 58,
+    "infra": 76,
+    "product": 88,
+    "quality": 54
+  },
+  "visible": {
+    "ambition": "staff",
+    "interview": "brilliant, abstract, connects domains quickly",
+    "motivation": "mastery",
+    "seniority": "staff"
+  }
+}

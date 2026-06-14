@@ -99,6 +99,12 @@ class HypervisorAssessor:
         avg_relationship_trust = sum(item.get("trust", 0) for item in relationships) // max(1, len(relationships))
         avg_relationship_friction = sum(item.get("friction", 0) for item in relationships) // max(1, len(relationships))
         product = state.get("product", {})
+        workstreams = state.get("workstreams", [])
+        blocked_work = sum(1 for item in workstreams if item.get("state") == "blocked")
+        rework_work = sum(1 for item in workstreams if item.get("state") == "rework")
+        unfinished_work = sum(1 for item in workstreams if item.get("state") not in {"done", "maintenance"})
+        work_penalty = min(3, blocked_work + rework_work + max(0, unfinished_work - 2) // 2)
+        velocity_penalty = max(0, 45 - product.get("velocity", 50)) // 10
         structure = team_structure(
             list(state.get("team", [])),
             {persona_id: self.personas.get(persona_id) for persona_id in state.get("team", [])},
@@ -136,6 +142,7 @@ class HypervisorAssessor:
             - relationship_penalty
             - ungrounded_penalty
             - construction_penalty
+            - work_penalty
         )
         product_score = _clamp(
             calibration
@@ -143,6 +150,8 @@ class HypervisorAssessor:
             - min(2, action_counts["defer_decision"] + action_counts["push_scope"])
             - quality_penalty
             - max(0, 45 - product.get("alignment", 50)) // 10
+            - velocity_penalty
+            - work_penalty
             - prediction_penalty // 2
         )
         crisis_score = _clamp(
@@ -153,6 +162,8 @@ class HypervisorAssessor:
             - relationship_penalty
             - ungrounded_penalty
             - construction_penalty
+            - work_penalty
+            - velocity_penalty
             - max(0, misses - hits)
         )
 
@@ -170,6 +181,7 @@ class HypervisorAssessor:
                 [
                     "The simulator gives more weight to observed hypotheses and resolved predictions than to action labels.",
                     f"{grounded_actions} intervention(s) were preceded by same-day investigation or 1:1 evidence; {ungrounded_actions} were not.",
+                    f"{blocked_work} workstream(s) remained blocked, {rework_work} were in rework, and the visible velocity ended at {product.get('velocity', 50)}.",
                 ],
             ),
             team_dynamics=AssessmentAxis(
@@ -179,6 +191,7 @@ class HypervisorAssessor:
                     collapse_signature or "A team can look calm while hidden dependencies and resentment accumulate.",
                     f"Current relationship context is inferred from observed behavior, not shown directly: trust, friction, and knowledge flow are all still partially hidden.",
                     construction_insight,
+                    f"Work-state consequences are included here because a team can look socially healthy while work remains stuck in review, rework, or handoff debt.",
                 ],
             ),
             product_complications=AssessmentAxis(

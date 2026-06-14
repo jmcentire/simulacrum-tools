@@ -1,0 +1,70 @@
+{
+  "backfill_fund_cents": 9360000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 88,
+      "outsources": ["stakeholder negotiation"],
+      "owns": ["technical strategy", "architecture decisions", "sequencing"],
+      "preferred": 88
+    },
+    "communication_style": "calm, unusually specific, names tradeoffs",
+    "compatibility_tags": ["mentor", "independent"],
+    "energy": {
+      "baseline": 78,
+      "drains": ["political churn", "work that only exists for optics"],
+      "energizers": ["hard systems problems", "teaching other engineers"],
+      "resilience": 78
+    },
+    "friction": {
+      "baseline": 14,
+      "tolerance": 78,
+      "triggers": ["unclear priorities", "constant context switching", "avoidable chaos"]
+    },
+    "friction_tags": ["high-bar"],
+    "mastery": {
+      "baseline": 92,
+      "drains": ["political churn", "work that only exists for optics"],
+      "energizers": ["hard systems problems", "teaching other engineers"],
+      "focus": "making the system legible and durable",
+      "preferred": 82
+    },
+    "purpose": {
+      "anti_purpose": ["status theater", "shipping something nobody needs"],
+      "baseline": 86,
+      "meaningful_outcomes": ["making the system legible and durable", "principal"],
+      "mission_hook": "making the system legible and durable"
+    },
+    "traits": {
+      "ambiguity_tolerance": 92,
+      "autonomy_need": 88,
+      "burnout_risk": 28,
+      "coachability": 82,
+      "collaboration": 79,
+      "crisis_response": "rises",
+      "integrity": 95,
+      "mentorship": 91,
+      "politics": "neutral",
+      "ramp_rate": 95,
+      "reliability": 94
+    }
+  },
+  "id": "quinn",
+  "name": "Quinn Mercer",
+  "role": "Principal Engineer",
+  "salary_cents": 52000000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 98,
+    "backend": 94,
+    "frontend": 82,
+    "infra": 91,
+    "product": 90,
+    "quality": 96
+  },
+  "visible": {
+    "ambition": "principal",
+    "interview": "calm, unusually specific, names tradeoffs",
+    "motivation": "impact",
+    "seniority": "principal"
+  }
+}

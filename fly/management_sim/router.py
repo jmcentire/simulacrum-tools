@@ -23,6 +23,10 @@ class DialogueRequest(BaseModel):
     message: str
 
 
+class CandidateInterviewRequest(BaseModel):
+    message: str
+
+
 class ActionRequest(BaseModel):
     persona_id: str
     action: str
@@ -131,6 +135,17 @@ async def dialogue(persona_id: str, req: DialogueRequest, simulacrum_session: st
     user = _require_user(simulacrum_session)
     try:
         return service.send_message(user["id"], persona_id, req.message)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/candidate-interview/{candidate_id}")
+async def candidate_interview(candidate_id: str, req: CandidateInterviewRequest, simulacrum_session: str | None = Cookie(None)):
+    user = _require_user(simulacrum_session)
+    try:
+        return service.send_candidate_interview(user["id"], candidate_id, req.message)
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc))
     except ValueError as exc:

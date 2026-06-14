@@ -127,6 +127,20 @@
         </div>`;
     }
 
+    function workPanel() {
+      const workstreams = week.workstreams || [];
+      return `
+        <div class="panel">
+          <h2>Work In Flight</h2>
+          <p class="muted">This is what the team says is moving. It does not tell you why something is stuck.</p>
+          ${workstreams.map(item => `
+            <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:8px">
+              <div class="muted"><strong>${esc(item.title)}</strong> · ${esc(item.owner)}</div>
+              <div class="muted">${esc(item.state)} · ${item.completion}%</div>
+            </div>`).join('')}
+        </div>`;
+    }
+
     function trackingPanel() {
       const choices = [
         ['delivery', 'Delivery'],
@@ -239,6 +253,19 @@
             ${pool.candidates.map(candidate => `<label class="muted" style="display:block;margin:8px 0"><input type="checkbox" class="interview-choice" value="${esc(candidate.id)}" ${pool.interview_ids.includes(candidate.id) ? 'checked' : ''}> <strong>${esc(candidate.name)}</strong> · ${esc(candidate.role)} · ${money(candidate.salary_cents)}</label>`).join('')}
             <div style="height:8px"></div>
             <button class="secondary" id="select-interviews" ${run.day === 4 ? '' : 'disabled'}>Select two interviews</button>
+            ${pool.interview_ids.map(candidateId => {
+              const candidate = pool.candidates.find(item => item.id === candidateId);
+              const history = candidate?.interview_history || [];
+              return `
+                <div style="border-top:1px solid var(--border); padding-top:10px; margin-top:10px">
+                  <div class="muted"><strong>${esc(candidate.name)}</strong> · ${esc(candidate.interview)}</div>
+                  ${history.map(turn => `<div class="muted" style="margin-top:4px"><strong>${esc(turn.role)}</strong>: ${esc(turn.content)}</div>`).join('')}
+                  <textarea id="candidate-message-${esc(candidate.id)}" placeholder="Ask a half-spec scenario, finishing work, conflict, details, or ownership."></textarea>
+                  <div style="height:6px"></div>
+                  <button class="secondary candidate-interview" data-candidate="${esc(candidate.id)}">Ask interview question</button>
+                  <div id="candidate-reply-${esc(candidate.id)}" class="muted" style="margin-top:6px"></div>
+                </div>`;
+            }).join('')}
             <div style="height:10px"></div>
             <select id="hire-choice">${pool.candidates.filter(candidate => !pool.interview_ids.length || pool.interview_ids.includes(candidate.id)).map(candidate => `<option value="${esc(candidate.id)}">${esc(candidate.name)} · ${esc(candidate.role)}</option>`).join('')}</select>
             <div style="height:8px"></div>
@@ -277,6 +304,7 @@
               ${(week.world_events || []).length ? '<div style="height:10px"></div>' : ''}
               ${(week.product_observations || []).map(item => `<div class="muted">${esc(item)}</div>`).join('')}
             </div>
+            ${workPanel()}
             ${inboxPanel()}
             ${reports()}
           </section>
@@ -406,6 +434,17 @@
           } catch (err) { document.getElementById('milestone-error').textContent = err.message; }
         };
       }
+      document.querySelectorAll('.candidate-interview').forEach(button => {
+        button.onclick = async () => {
+          const candidateId = button.dataset.candidate;
+          const reply = document.getElementById(`candidate-reply-${candidateId}`);
+          reply.textContent = '...';
+          try {
+            const data = await api(`/api/management-sim/candidate-interview/${candidateId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ message:document.getElementById(`candidate-message-${candidateId}`).value }) });
+            reply.textContent = data.response_text;
+          } catch (err) { reply.textContent = err.message; }
+        };
+      });
       const chooseHire = document.getElementById('choose-hire');
       if (chooseHire) {
         chooseHire.onclick = async () => {
