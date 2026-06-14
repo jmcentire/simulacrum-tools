@@ -34,8 +34,11 @@ from pydantic import BaseModel
 from agents.dispatcher import Dispatcher
 from agents.generalist import is_configured as generalist_configured
 from agents.teach import TeachAgent
+from agents.user_model import UserModelService, compact_profile
 import auth
+import chat_memory
 import db
+from engineer_scenarios import public_scenarios
 from management_sim.router import router as management_sim_router
 
 ROOT = Path(__file__).parent
@@ -49,6 +52,7 @@ TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "")
 COUNTER_COOKIE = "simulacrum_counter"
 REGISTER_COOKIE = "simulacrum_register"
 MODE_COOKIE = "simulacrum_mode"
+CHAT_SESSION_COOKIE = "simulacrum_chat_session"
 WINDOW_SECONDS = 24 * 3600
 CAP_PER_WINDOW = int(os.environ.get("CAP_PER_WINDOW", "20"))
 COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "1") != "0"
@@ -58,6 +62,7 @@ if not ANTHROPIC_API_KEY:
 
 dispatcher = Dispatcher()
 teach = TeachAgent()
+user_model_service = UserModelService()
 db.init_db()
 print(f"dispatcher loaded — generalist={'enabled' if generalist_configured() else 'disabled (specialist-only)'}")
 
@@ -125,6 +130,7 @@ class DialogTurn(BaseModel):
 
 class ChatRequest(BaseModel):
     dialog: list[DialogTurn]
+    session_id: Optional[str] = None
     turnstile_token: Optional[str] = None
     temperature: float = 0.7
 
@@ -135,6 +141,7 @@ class ChatResponse(BaseModel):
     phase: str
     mode: Optional[str] = None
     remaining: int
+    session_id: str
 
 
 def _current_user(session_token: Optional[str]) -> dict | None:
@@ -146,6 +153,28 @@ def _require_user(session_token: Optional[str]) -> dict:
     if not user:
         raise HTTPException(status_code=401, detail="sign in required")
     return user
+
+
+def _valid_register(value: Optional[str]) -> str:
+    return value if value in ("professional", "sailor") else "professional"
+
+
+def _valid_mode(value: Optional[str]) -> str:
+    return value if value in ("review", "teach") else "review"
+
+
+def _dialog_from_turns(turns: list[dict]) -> list[tuple[str, str]]:
+    return [
+        ("Interlocutor" if turn["role"] == "user" else "Jeremy", turn["content"])
+        for turn in turns
+    ]
+
+
+def _latest_user_text(req: ChatRequest) -> str:
+    for turn in reversed(req.dialog):
+        if turn.role.lower() in {"user", "interlocutor"}:
+            return turn.text.strip()
+    return ""
 
 
 def _auth_page(title: str, body: str, message: str = "") -> HTMLResponse:
@@ -302,9 +331,10 @@ async def chat(req: ChatRequest,
                simulacrum_counter: Optional[str] = Cookie(None),
                simulacrum_register: Optional[str] = Cookie(None),
                simulacrum_mode: Optional[str] = Cookie(None),
+               simulacrum_chat_session: Optional[str] = Cookie(None),
                simulacrum_session: Optional[str] = Cookie(None),
                cf_connecting_ip: Optional[str] = Header(None, alias="CF-Connecting-IP")) -> JSONResponse:
-    _require_user(simulacrum_session)
+    user = _require_user(simulacrum_session)
     if not req.dialog:
         raise HTTPException(status_code=400, detail="empty dialog")
 
@@ -322,13 +352,72 @@ async def chat(req: ChatRequest,
 
     invalid_register = simulacrum_register is not None and simulacrum_register not in ("professional", "sailor")
     invalid_mode = simulacrum_mode is not None and simulacrum_mode not in ("review", "teach")
-    register_mode = simulacrum_register if not invalid_register and simulacrum_register else "professional"
-    chat_mode = simulacrum_mode if not invalid_mode and simulacrum_mode else "review"
-    dialogue = [(t.role, t.text) for t in req.dialog]
-    if chat_mode == "teach":
-        out = teach.utterance(dialogue, temperature=req.temperature, register_mode=register_mode)
+    register_mode = _valid_register(simulacrum_register)
+    chat_mode = _valid_mode(simulacrum_mode)
+
+    session = chat_memory.get_session(req.session_id or simulacrum_chat_session, user["id"])
+    if not session:
+        session = chat_memory.create_session(user["id"], chat_mode, register_mode)
     else:
-        out = dispatcher.utterance(dialogue, register_mode=register_mode)
+        session = chat_memory.update_session(
+            session["id"],
+            user["id"],
+            mode=chat_mode,
+            register_mode=register_mode,
+            updated_at=db.utc_now(),
+        )
+
+    user_text = _latest_user_text(req)
+    if not user_text:
+        raise HTTPException(status_code=400, detail="dialog must end with a user turn")
+
+    stored_last = chat_memory.last_turn(session["id"], user["id"])
+    if not (
+        stored_last
+        and stored_last["role"] == "user"
+        and stored_last["content"] == user_text
+    ):
+        chat_memory.append_turn(session["id"], user["id"], "user", user_text)
+
+    stored_turns = chat_memory.list_turns(session["id"], user["id"], limit=80)
+    dialogue = _dialog_from_turns(stored_turns[-40:])
+    profile = chat_memory.get_profile(user["id"])
+    user_turn_count = chat_memory.count_user_turns(session["id"], user["id"])
+    session_summary = session.get("summary_text") or ""
+    if chat_memory.profile_needs_refresh(profile, user_turn_count):
+        try:
+            session_summary = user_model_service.summarize_session(session_summary, dialogue)
+            profile = user_model_service.refresh_profile(profile, session_summary, dialogue)
+            profile = chat_memory.save_profile(user["id"], profile, user_turn_count)
+            session = chat_memory.update_session(
+                session["id"],
+                user["id"],
+                summary_text=session_summary,
+                updated_at=db.utc_now(),
+            )
+        except Exception:
+            # User-model calibration is additive. A failed refresh must not
+            # prevent the actual coaching turn from proceeding.
+            pass
+
+    profile_context = compact_profile(profile)
+    if chat_mode == "teach":
+        out = teach.utterance(
+            dialogue,
+            temperature=req.temperature,
+            register_mode=register_mode,
+            user_model=profile_context,
+            session_summary=session_summary,
+        )
+    else:
+        out = dispatcher.utterance(
+            dialogue,
+            register_mode=register_mode,
+            user_model=profile_context,
+            session_summary=session_summary,
+        )
+
+    chat_memory.append_turn(session["id"], user["id"], "assistant", out["text"])
 
     timestamps.append(int(time.time()))
     remaining = max(0, CAP_PER_WINDOW - len(timestamps))
@@ -339,6 +428,7 @@ async def chat(req: ChatRequest,
         phase=out["phase"],
         mode=out.get("mode"),
         remaining=remaining,
+        session_id=session["id"],
     ).model_dump())
     resp.set_cookie(
         COUNTER_COOKIE, _write_counter(timestamps),
@@ -354,12 +444,83 @@ async def chat(req: ChatRequest,
             MODE_COOKIE, chat_mode,
             max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=COOKIE_SECURE,
         )
+    resp.set_cookie(
+        CHAT_SESSION_COOKIE,
+        session["id"],
+        max_age=365 * 24 * 3600,
+        httponly=False,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+    )
+    return resp
+
+
+@app.get("/api/chat-session")
+async def current_chat_session(
+    simulacrum_chat_session: Optional[str] = Cookie(None),
+    simulacrum_session: Optional[str] = Cookie(None),
+):
+    user = _require_user(simulacrum_session)
+    session = chat_memory.get_session(simulacrum_chat_session, user["id"])
+    if not session:
+        return {"session": None, "turns": []}
+    turns = chat_memory.list_turns(session["id"], user["id"], limit=80)
+    return {
+        "session": {
+            "id": session["id"],
+            "mode": session["mode"],
+            "register_mode": session["register_mode"],
+            "summary_text": session.get("summary_text") or "",
+            "turn_count": session["turn_count"],
+        },
+        "turns": [{"role": turn["role"], "text": turn["content"]} for turn in turns],
+    }
+
+
+@app.post("/api/chat-session/new")
+async def new_chat_session(
+    simulacrum_register: Optional[str] = Cookie(None),
+    simulacrum_mode: Optional[str] = Cookie(None),
+    simulacrum_session: Optional[str] = Cookie(None),
+):
+    user = _require_user(simulacrum_session)
+    session = chat_memory.create_session(
+        user["id"],
+        _valid_mode(simulacrum_mode),
+        _valid_register(simulacrum_register),
+    )
+    resp = JSONResponse(
+        {
+            "session": {
+                "id": session["id"],
+                "mode": session["mode"],
+                "register_mode": session["register_mode"],
+                "summary_text": "",
+                "turn_count": 0,
+            },
+            "turns": [],
+        }
+    )
+    resp.set_cookie(
+        CHAT_SESSION_COOKIE,
+        session["id"],
+        max_age=365 * 24 * 3600,
+        httponly=False,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+    )
     return resp
 
 
 @app.get("/config")
 async def config():
     return {"turnstile_site_key": TURNSTILE_SITE_KEY, "cap_per_window": CAP_PER_WINDOW}
+
+
+@app.get("/api/engineer-scenarios")
+async def engineer_scenarios(simulacrum_session: Optional[str] = Cookie(None)):
+    _require_user(simulacrum_session)
+    return {"scenarios": public_scenarios()}
 
 
 @app.get("/healthz")

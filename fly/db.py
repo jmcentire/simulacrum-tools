@@ -114,6 +114,39 @@ def init_db() -> None:
                 FOREIGN KEY(user_id) REFERENCES users(id)
             );
 
+            CREATE TABLE IF NOT EXISTS chat_sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                mode TEXT NOT NULL,
+                register_mode TEXT NOT NULL,
+                summary_text TEXT,
+                turn_count INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS chat_turns (
+                id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                turn_number INTEGER NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                UNIQUE(session_id, turn_number),
+                FOREIGN KEY(session_id) REFERENCES chat_sessions(id),
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS user_models (
+                user_id TEXT PRIMARY KEY,
+                profile_json TEXT NOT NULL,
+                observed_turns INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            );
+
             CREATE TABLE IF NOT EXISTS sim_runs (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
@@ -193,6 +226,9 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_magic_links_token_hash ON magic_links(token_hash);
             CREATE INDEX IF NOT EXISTS idx_magic_links_email ON magic_links(email);
             CREATE INDEX IF NOT EXISTS idx_memories_user_id ON memories(user_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON chat_sessions(user_id, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_chat_turns_session_id ON chat_turns(session_id, turn_number ASC);
+            CREATE INDEX IF NOT EXISTS idx_chat_turns_user_id ON chat_turns(user_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_sim_runs_user_id ON sim_runs(user_id, updated_at DESC);
             CREATE INDEX IF NOT EXISTS idx_sim_events_run_id ON sim_events(run_id, created_at ASC);
             CREATE INDEX IF NOT EXISTS idx_sim_state_snapshots_run ON sim_state_snapshots(run_id, week, persona_id);

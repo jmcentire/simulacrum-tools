@@ -81,6 +81,13 @@
     .empty .links a:hover { text-decoration: underline; }
     .hint { font-size: 12px; color: var(--subtle); margin-top: 8px; max-width: 880px;
             margin-left: auto; margin-right: auto; padding: 0 24px 8px; }
+    .workspace-tools { display: flex; gap: 8px; align-items: center; max-width: 880px;
+                       margin: 0 auto; width: 100%; padding: 0 24px 10px; }
+    .workspace-tools label { font-size: 12px; color: var(--subtle); white-space: nowrap; }
+    .workspace-tools select { flex: 1; background: var(--bg); color: var(--text);
+                              border: 1px solid var(--border-input); border-radius: 4px;
+                              padding: 7px 10px; font: inherit; font-size: 12px; }
+    .workspace-tools button { padding: 7px 10px; font-size: 12px; }
     footer { font-size: 12px; color: var(--subtle); text-align: center; padding: 8px 24px 16px;
              border-top: 1px solid var(--border); background: var(--surface); }
     footer a { color: var(--subtle); margin: 0 4px; text-decoration: none; }
@@ -107,6 +114,7 @@
       <button type="button" id="theme-dark" data-theme="dark">Dark</button>
     </div>
     <div class="segmented" aria-label="Navigation">
+      <button type="button" id="new-chat">New</button>
       <a class="nav-link" href="/simulator">Manager</a>
       <a class="nav-link" href="/logout">Logout</a>
     </div>
@@ -125,6 +133,13 @@
     </div>
   </div>
   <p class="hint">Review mode is for adversarial dialog. Teach mode is for guided professional reasoning. Direct factual recall ("what's project X?") is not its strength.</p>
+  <div class="workspace-tools">
+    <label for="scenario-select">Practice</label>
+    <select id="scenario-select">
+      <option value="">Choose an engineer scenario...</option>
+    </select>
+    <button type="button" id="use-scenario">Use</button>
+  </div>
   <form id="input-row">
     <textarea id="input" placeholder="Pitch an idea, propose a frame, claim something..." autofocus></textarea>
     <button type="submit" id="send">Send</button>
@@ -158,9 +173,30 @@
     const themeButtons = [...document.querySelectorAll('[data-theme]')];
     const modeButtons = [...document.querySelectorAll('[data-mode]')];
     const registerButtons = [...document.querySelectorAll('[data-register]')];
+    const newChatButton = document.getElementById('new-chat');
+    const scenarioSelect = document.getElementById('scenario-select');
+    const useScenarioButton = document.getElementById('use-scenario');
     const dialog = [];
+    let sessionId = null;
+    let scenarios = [];
     let turnstileWidgetId = null;
     let turnstileSiteKey = null;
+
+    function emptyMarkup() {
+      return `
+        <div class="empty">
+          <h2>A generative simulacrum.</h2>
+          <p>Built on the architecture from Park et al.'s <em>Generative Agent Simulations of 1,000 People</em> (2024) — a two-phase dispatcher routes each turn between a recall branch and an adversarial-dialog branch.</p>
+          <p>Pitch an idea, propose a frame, claim something. Professional for sharp pushback when the framing has a flaw — and direct engagement when it doesn't.</p>
+          <div class="links">
+            <a href="https://arxiv.org/abs/2411.10109" target="_blank" rel="noopener">Paper</a> ·
+            <a href="https://github.com/jmcentire/simulacrum" target="_blank" rel="noopener">Code</a> ·
+            <a href="/privacy">Privacy</a> ·
+            <a href="/terms">Terms</a>
+          </div>
+        </div>
+      `;
+    }
 
     async function loadConfig() {
       try {
@@ -265,7 +301,10 @@
     }));
 
     function render() {
-      if (dialog.length === 0) return;
+      if (dialog.length === 0) {
+        chat.innerHTML = emptyMarkup();
+        return;
+      }
       chat.innerHTML = dialog.map(t => `
         <div class="turn">
           <div class="role ${t.role === 'user' ? 'user' : 'jeremy'}">${t.role === 'user' ? 'YOU' : 'JEREMY'}</div>
@@ -278,6 +317,51 @@
     function escapeHtml(s) {
       return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
+
+    async function loadSession() {
+      try {
+        const res = await fetch('/api/chat-session', { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json();
+        sessionId = data.session ? data.session.id : null;
+        dialog.splice(0, dialog.length, ...(data.turns || []).map(t => ({
+          role: t.role === 'user' ? 'user' : 'jeremy',
+          text: t.text,
+        })));
+        render();
+      } catch (e) { /* no-op */ }
+    }
+
+    async function loadScenarios() {
+      try {
+        const res = await fetch('/api/engineer-scenarios', { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json();
+        scenarios = data.scenarios || [];
+        scenarioSelect.innerHTML = '<option value="">Choose an engineer scenario...</option>' +
+          scenarios.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.category)} · ${escapeHtml(s.title)}</option>`).join('');
+      } catch (e) { /* no-op */ }
+    }
+
+    newChatButton.addEventListener('click', async () => {
+      const res = await fetch('/api/chat-session/new', { method: 'POST', credentials: 'same-origin' });
+      if (!res.ok) return;
+      const data = await res.json();
+      sessionId = data.session.id;
+      dialog.splice(0, dialog.length);
+      render();
+      input.focus();
+    });
+
+    useScenarioButton.addEventListener('click', () => {
+      const scenario = scenarios.find(s => s.id === scenarioSelect.value);
+      if (!scenario) return;
+      input.value = scenario.prompt;
+      input.focus();
+    });
+
+    loadSession();
+    loadScenarios();
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -296,6 +380,7 @@
           credentials: 'same-origin',
           body: JSON.stringify({
             dialog: dialog.map(t => ({ role: t.role === 'user' ? 'Interlocutor' : 'Jeremy', text: t.text })),
+            session_id: sessionId,
             turnstile_token: turnstileToken,
           }),
         });
@@ -307,6 +392,7 @@
         }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+        sessionId = data.session_id || sessionId;
         dialog.push({ role: 'jeremy', text: data.response });
         render();
       } catch (err) {

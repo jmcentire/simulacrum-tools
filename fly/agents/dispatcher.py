@@ -76,8 +76,13 @@ class Dispatcher:
         reason = r.group(1).strip() if r else ""
         return phase, reason
 
-    def utterance(self, dialogue: list[tuple[str, str]],
-                  register_mode: str = "professional") -> dict:
+    def utterance(
+        self,
+        dialogue: list[tuple[str, str]],
+        register_mode: str = "professional",
+        user_model: dict | None = None,
+        session_summary: str = "",
+    ) -> dict:
         last_setup = dialogue[-1][1]
         phase, reason = self._classify(last_setup)
 
@@ -90,6 +95,11 @@ class Dispatcher:
                     "agent": "generalist", "mode": None, "register": register_mode}
         else:
             # SPECIALIST path, or GENERALIST-but-no-generalist-configured fallback.
-            out = self._specialist.utterance(dialogue, register_mode=register_mode)
+            out = self._specialist.utterance(
+                dialogue,
+                register_mode=register_mode,
+                user_model=user_model,
+                session_summary=session_summary,
+            )
             return {"text": out["text"], "phase": phase, "phase_reason": reason,
                     "agent": "specialist", "mode": out["mode"], "register": register_mode}

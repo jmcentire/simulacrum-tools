@@ -1,0 +1,299 @@
+[
+  {
+    "id": "roadmap-too-large",
+    "category": "product",
+    "difficulty": "medium",
+    "title": "The roadmap that cannot fit",
+    "prompt": "You inherit a roadmap with twelve major features promised for the next quarter. The team has six engineers, two product managers, and no clear definition of what success means. What do you do before assigning work?",
+    "targets": ["scope decomposition", "success criteria", "tradeoff framing"],
+    "failure_modes": ["accepting every promise", "turning the roadmap into a ticket list", "confusing activity with progress"]
+  },
+  {
+    "id": "timeline-without-knowledge",
+    "category": "planning",
+    "difficulty": "medium",
+    "title": "The deadline before discovery",
+    "prompt": "A VP asks for a delivery date for a system nobody has built and whose dependencies are still uncertain. They want a number by tomorrow. How do you answer?",
+    "targets": ["uncertainty", "projections", "decision boundaries"],
+    "failure_modes": ["inventing certainty", "refusing to commit anything", "hiding assumptions"]
+  },
+  {
+    "id": "ai-generated-architecture",
+    "category": "architecture",
+    "difficulty": "hard",
+    "title": "The impressive AI design",
+    "prompt": "An AI assistant proposes a well-documented event-driven architecture with queues, state machines, retries, and a workflow engine for a product that currently processes fifty requests per day. What do you inspect before approving it?",
+    "targets": ["abstraction fit", "operational cost", "simplification"],
+    "failure_modes": ["accepting enterprise machinery", "rejecting it only because it is complex", "ignoring future constraints"]
+  },
+  {
+    "id": "feature-or-foundation",
+    "category": "product",
+    "difficulty": "medium",
+    "title": "Feature pressure versus foundation",
+    "prompt": "Sales promises a large customer a feature that depends on a brittle subsystem. The feature could close the deal, but the subsystem is already causing incidents. How do you reason about the next two weeks?",
+    "targets": ["risk pricing", "stakeholder negotiation", "sequence of work"],
+    "failure_modes": ["always fix debt first", "always chase revenue", "ignoring the cost of delay"]
+  },
+  {
+    "id": "metric-is-a-lie",
+    "category": "measurement",
+    "difficulty": "hard",
+    "title": "The metric everyone can game",
+    "prompt": "Leadership wants engineers measured by pull requests merged per week. You know the metric will distort behavior. What do you propose instead, and what will still go wrong?",
+    "targets": ["Goodhart", "leading indicators", "measurement limits"],
+    "failure_modes": ["offering a better proxy as truth", "refusing measurement", "ignoring incentives"]
+  },
+  {
+    "id": "slow-quiet-bug",
+    "category": "debugging",
+    "difficulty": "medium",
+    "title": "The bug that only appears after three days",
+    "prompt": "A customer reports a data discrepancy that appears only after a long-running workflow completes. Logs are incomplete and the obvious reproduction path fails. How do you investigate?",
+    "targets": ["hypothesis design", "instrumentation", "counterfactuals"],
+    "failure_modes": ["random logging", "jumping to root cause", "fixing symptoms"]
+  },
+  {
+    "id": "incident-without-heroics",
+    "category": "operations",
+    "difficulty": "medium",
+    "title": "The outage where the hero is wrong",
+    "prompt": "Production is down. Your strongest engineer wants to bypass safeguards and hot-fix directly in production. They are usually right and the team trusts them. What do you do?",
+    "targets": ["incident control", "authority", "risk under pressure"],
+    "failure_modes": ["blindly follow the hero", "block action without a path forward", "turning the outage into a power struggle"]
+  },
+  {
+    "id": "one-person-system",
+    "category": "team",
+    "difficulty": "hard",
+    "title": "The subsystem only one person understands",
+    "prompt": "A critical subsystem is effectively owned by one senior engineer. They are productive, protective, and overloaded. What do you change without destroying their autonomy?",
+    "targets": ["bus factor", "autonomy", "knowledge transfer"],
+    "failure_modes": ["force documentation theater", "leave the silo alone", "treat the engineer as the problem"]
+  },
+  {
+    "id": "code-review-social",
+    "category": "collaboration",
+    "difficulty": "medium",
+    "title": "The code review nobody wants to write",
+    "prompt": "A senior engineer's changes are consistently hard to review, but nobody comments because they are politically dangerous. How do you surface the issue?",
+    "targets": ["psychological safety", "review norms", "political risk"],
+    "failure_modes": ["public confrontation", "silent acceptance", "process theater"]
+  },
+  {
+    "id": "build-vs-buy",
+    "category": "architecture",
+    "difficulty": "medium",
+    "title": "Build versus buy is the wrong question",
+    "prompt": "A team is arguing whether to build an internal tool or buy a vendor product. The argument has become ideological. What questions make the actual decision visible?",
+    "targets": ["constraints", "ownership", "switching cost"],
+    "failure_modes": ["tool preference", "cost-only comparison", "ignoring long-term fit"]
+  },
+  {
+    "id": "migration-without-stopping",
+    "category": "architecture",
+    "difficulty": "hard",
+    "title": "The migration while traffic keeps flowing",
+    "prompt": "You need to replace a core datastore while the product remains live. There is no downtime window and no clean rollback. How do you decompose the migration?",
+    "targets": ["incremental migration", "reversibility", "observability"],
+    "failure_modes": ["big bang cutover", "endless dual-write", "ignoring rollback semantics"]
+  },
+  {
+    "id": "skill-you-avoid",
+    "category": "growth",
+    "difficulty": "medium",
+    "title": "The skill you keep avoiding",
+    "prompt": "You know distributed systems would make you stronger, but you keep avoiding it because the material feels abstract and punishing. How do you build a learning plan that changes how you think rather than checking a box?",
+    "targets": ["deliberate practice", "concrete projects", "desirable difficulty"],
+    "failure_modes": ["reading only", "course collecting", "choosing a project too large"]
+  },
+  {
+    "id": "mentor-or-solver",
+    "category": "leadership",
+    "difficulty": "medium",
+    "title": "The junior engineer asks for the answer",
+    "prompt": "A junior engineer asks you to solve a bug for them because they are behind. You can fix it in five minutes; they may spend two hours. What do you do?",
+    "targets": ["teaching", "time pressure", "ownership"],
+    "failure_modes": ["always make them struggle", "always rescue", "ignoring deadline context"]
+  },
+  {
+    "id": "ambiguous-requirement",
+    "category": "product",
+    "difficulty": "medium",
+    "title": "The requirement that is really a wish",
+    "prompt": "A stakeholder says, 'Make onboarding feel effortless.' No one can define effortless. What do you do before building?",
+    "targets": ["problem framing", "user evidence", "proxy risks"],
+    "failure_modes": ["translate it into UI tasks", "reject it as vague", "build from taste alone"]
+  },
+  {
+    "id": "performance-before-scale",
+    "category": "architecture",
+    "difficulty": "medium",
+    "title": "The performance work nobody needs yet",
+    "prompt": "An engineer wants to spend a sprint optimizing a path that is currently 8% of latency and not customer-visible. They are excited about the work. What do you do?",
+    "targets": ["energy alignment", "opportunity cost", "measurement"],
+    "failure_modes": ["kill the idea because it is not urgent", "let them optimize endlessly", "ignore their motivation"]
+  },
+  {
+    "id": "security-after-demo",
+    "category": "security",
+    "difficulty": "hard",
+    "title": "The demo that skips the hard part",
+    "prompt": "A product demo works beautifully because it stores sensitive data in a way security will reject. The team wants to launch it and 'fix security later.' How do you respond?",
+    "targets": ["constraint discovery", "security as architecture", "launch sequencing"],
+    "failure_modes": ["security veto without alternate path", "ship and hope", "treating compliance as paperwork"]
+  },
+  {
+    "id": "false-urgency",
+    "category": "planning",
+    "difficulty": "medium",
+    "title": "Everything is urgent",
+    "prompt": "Three stakeholders all say their request is urgent. Each has a plausible business reason. How do you decide what is actually urgent?",
+    "targets": ["priority criteria", "cost of delay", "explicit tradeoffs"],
+    "failure_modes": ["first loudest wins", "build a scoring matrix and obey it blindly", "refuse to choose"]
+  },
+  {
+    "id": "tooling-golden-path",
+    "category": "developer-experience",
+    "difficulty": "medium",
+    "title": "The developer tool nobody adopts",
+    "prompt": "You built an internal tool that should save engineers time, but they keep working around it. What do you investigate?",
+    "targets": ["workflow observation", "incentives", "friction"],
+    "failure_modes": ["add training", "force adoption", "assume users are wrong"]
+  },
+  {
+    "id": "test-suite-lie",
+    "category": "quality",
+    "difficulty": "hard",
+    "title": "The green test suite that lies",
+    "prompt": "CI is green, but customers keep seeing regressions. The team wants more tests. What do you ask before adding them?",
+    "targets": ["coverage meaning", "test intent", "missing oracles"],
+    "failure_modes": ["more tests as a ritual", "dismiss tests entirely", "ignore production signals"]
+  },
+  {
+    "id": "ai-code-review",
+    "category": "ai-assisted-development",
+    "difficulty": "hard",
+    "title": "The AI code review that sounds right",
+    "prompt": "An AI review flags a risky design choice with polished reasoning, but the author says the review misunderstands the local constraint. How do you evaluate it?",
+    "targets": ["local context", "authority", "evidence"],
+    "failure_modes": ["trust AI because it sounds coherent", "dismiss AI categorically", "ignore the actual constraint"]
+  },
+  {
+    "id": "team-of-specialists",
+    "category": "team",
+    "difficulty": "hard",
+    "title": "The team of brilliant specialists",
+    "prompt": "You have five highly capable specialists. Delivery is slow because every change crosses two or three ownership boundaries. What do you change?",
+    "targets": ["interfaces", "team topology", "coordination cost"],
+    "failure_modes": ["add meetings", "make everyone a generalist", "ignore ownership boundaries"]
+  },
+  {
+    "id": "prototype-that-became-production",
+    "category": "architecture",
+    "difficulty": "medium",
+    "title": "The prototype that became production",
+    "prompt": "A prototype built for a demo now has paying customers. It is ugly but working. How do you decide whether to rewrite, harden, or leave it alone?",
+    "targets": ["rewrite risk", "customer value", "incremental hardening"],
+    "failure_modes": ["rewrite because it is embarrassing", "never touch it", "add abstractions without understanding failure modes"]
+  },
+  {
+    "id": "career-ladder",
+    "category": "growth",
+    "difficulty": "medium",
+    "title": "The promotion plan that is just more tasks",
+    "prompt": "You want to become a staff engineer. Your manager says to 'take on more scope.' What actual capabilities do you need to develop?",
+    "targets": ["role definition", "system thinking", "influence"],
+    "failure_modes": ["collecting tasks", "chasing title signals", "ignoring leverage"]
+  },
+  {
+    "id": "vendor-lock-in",
+    "category": "architecture",
+    "difficulty": "hard",
+    "title": "The vendor lock-in argument",
+    "prompt": "Someone says, 'We cannot use this cloud service because vendor lock-in is bad.' Another says, 'We should use it because it is fastest.' How do you reason about it?",
+    "targets": ["reversibility", "switching cost", "time-to-value"],
+    "failure_modes": ["abstract purity", "speed-only thinking", "pretending lock-in is binary"]
+  },
+  {
+    "id": "new-language",
+    "category": "growth",
+    "difficulty": "medium",
+    "title": "Learning a language by building",
+    "prompt": "You want to learn Rust, but every tutorial feels disconnected from real work. What project would force the important concepts without becoming a six-month detour?",
+    "targets": ["project selection", "constraints", "feedback loops"],
+    "failure_modes": ["toy exercises forever", "production rewrite", "ignoring the language's hard parts"]
+  },
+  {
+    "id": "customer-requested-api",
+    "category": "product",
+    "difficulty": "hard",
+    "title": "The customer requests an API",
+    "prompt": "A large customer asks for an API. The team wants to expose the current internal model. What do you examine before saying yes?",
+    "targets": ["public contract", "abstraction boundary", "future support cost"],
+    "failure_modes": ["expose internals", "refuse all APIs", "ignore support and versioning"]
+  },
+  {
+    "id": "on-call-burnout",
+    "category": "operations",
+    "difficulty": "medium",
+    "title": "The on-call rotation that drains everyone",
+    "prompt": "On-call is technically manageable but people hate it. Incidents are noisy, handoffs are poor, and nobody trusts the runbooks. What do you change first?",
+    "targets": ["friction", "systemic fixes", "morale"],
+    "failure_modes": ["pay people more", "add more runbooks", "treat burnout as personal weakness"]
+  },
+  {
+    "id": "data-model-argument",
+    "category": "architecture",
+    "difficulty": "hard",
+    "title": "The data model argument",
+    "prompt": "One engineer wants a normalized relational model. Another wants a document model because it matches the UI. Both are smart and both can make a good case. What decides it?",
+    "targets": ["access patterns", "invariants", "change cost"],
+    "failure_modes": ["religion", "current UI shape", "future-proofing theater"]
+  },
+  {
+    "id": "deadline-and-quality",
+    "category": "planning",
+    "difficulty": "medium",
+    "title": "The deadline that requires quality debt",
+    "prompt": "A launch date is fixed by a conference. The team can ship by cutting tests and observability. What do you say to the business and what do you change in the plan?",
+    "targets": ["risk communication", "scope cuts", "quality boundaries"],
+    "failure_modes": ["say no without options", "ship broken", "hide the debt"]
+  },
+  {
+    "id": "manager-wants-status",
+    "category": "leadership",
+    "difficulty": "medium",
+    "title": "The status report that hides reality",
+    "prompt": "Your manager wants a simple red-yellow-green status report. The project is yellow in five different ways. How do you communicate without turning complexity into a lie?",
+    "targets": ["upward management", "legibility", "decision support"],
+    "failure_modes": ["give the color and stop", "refuse the format", "overload the manager with detail"]
+  },
+  {
+    "id": "refactor-without-user-value",
+    "category": "quality",
+    "difficulty": "medium",
+    "title": "The refactor with no customer story",
+    "prompt": "An engineer proposes a major refactor because the code is painful. There is no direct customer value and the team is behind on roadmap work. How do you decide?",
+    "targets": ["technical debt", "pain as signal", "risk reduction"],
+    "failure_modes": ["only customer-visible work matters", "refactor because code is ugly", "ignore maintenance cost"]
+  },
+  {
+    "id": "interview-signal",
+    "category": "hiring",
+    "difficulty": "hard",
+    "title": "The articulate candidate",
+    "prompt": "A candidate is charismatic, uses all the right architecture vocabulary, and gives polished answers. Their examples are thin on concrete tradeoffs. What do you probe?",
+    "targets": ["signal vs performance", "mechanistic reasoning", "interview design"],
+    "failure_modes": ["hire charisma", "reject charisma", "ask trivia"]
+  },
+  {
+    "id": "disagree-with-product",
+    "category": "collaboration",
+    "difficulty": "medium",
+    "title": "The product decision you think is wrong",
+    "prompt": "Product wants to simplify a workflow by hiding advanced options. You think it will hurt expert users. How do you make the argument without turning it into a turf war?",
+    "targets": ["user evidence", "cross-functional trust", "tradeoffs"],
+    "failure_modes": ["engineer ego", "defer blindly", "argue from taste"]
+  }
+]

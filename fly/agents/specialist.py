@@ -189,9 +189,14 @@ class SpecialistAgent:
         reason = r.group(1).strip() if r else ""
         return mode, reason
 
-    def utterance(self, dialogue: list[tuple[str, str]],
-                  temperature: float = 0.7,
-                  register_mode: str = "professional") -> dict:
+    def utterance(
+        self,
+        dialogue: list[tuple[str, str]],
+        temperature: float = 0.7,
+        register_mode: str = "professional",
+        user_model: dict | None = None,
+        session_summary: str = "",
+    ) -> dict:
         last_setup = dialogue[-1][1]
         mode, reason = self._classify(last_setup)
         base_prompt = self._prompts.get(register_mode, self._prompts["professional"])
@@ -205,7 +210,15 @@ class SpecialistAgent:
             system_blocks.append({"type": "text", "text": MODE_A_AUGMENT})
 
         dialog_str = "\n\n".join(f"[{r}]: {t}" for r, t in dialogue)
-        user_msg = f"Current dialog:\n\n{dialog_str}\n\n[Jeremy McEntire]: "
+        user_context = ""
+        if user_model or session_summary:
+            user_context = (
+                "\n\nKNOWN USER CONTEXT (hypothesis only; use it to calibrate "
+                "pressure, examples, and explanation style. Never use it as "
+                "evidence that their claim is correct):\n"
+                f"{json.dumps(user_model or {})}\n\nSESSION SUMMARY:\n{session_summary}"
+            )
+        user_msg = f"Current dialog:\n\n{dialog_str}{user_context}\n\n[Jeremy McEntire]: "
         resp = self.client.messages.create(
             model=self.model,
             max_tokens=1500,

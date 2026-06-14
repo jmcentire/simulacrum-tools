@@ -9,9 +9,9 @@ loop:
     observe learner state -> choose target/intervention -> draft response
     -> audit draft -> revise once if needed
 
-This is deliberately lightweight. It does not persist a student model yet;
-the current dialog is the state source. The planner vocabulary is explicit so
-the system does not default to challenge on every turn.
+This is deliberately lightweight. Persistent user context can calibrate
+pressure and examples, but a separate no-profile epistemic gate decides whether
+the learner's current claim warrants correction or challenge.
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from typing import Any
 import anthropic
 
 from .specialist import PROFESSIONAL_REGISTER, SAILOR_REGISTER
+from .user_model import detect_pressure_mismatch
 
 DEFAULT_MODEL = "claude-sonnet-4-5"
 
@@ -193,7 +194,10 @@ class TeachAgent:
         )
         return resp.content[0].text.strip()
 
-    def _observe(self, dialogue: list[tuple[str, str]]) -> dict[str, Any]:
+    def _observe(
+        self,
+        dialogue: list[tuple[str, str]],
+    ) -> dict[str, Any]:
         instruction = """You are the hidden psychological observer inside an
 adult professional coach. Infer the learner state probabilistically from the
 dialog only. Do not diagnose clinically. Do not invent facts.
@@ -207,7 +211,7 @@ Return JSON with:
 - pressure_tolerance: low|medium|high
 - protecting: short phrase
 - emerging_insight: short phrase or null
-- blind_spots: array of short phrases
+- sticking_points: array of short phrases
 - needs: array chosen from safety, validation, challenge, reframe, anchor,
   reflection, directness, time, win, permission, experiment
 - evidence: array of short observations grounded in the dialog
@@ -216,7 +220,32 @@ The goal is not to label the person. The goal is to estimate what they need
 next in this conversation."""
         return self._json_pass(instruction, _dialog_text(dialogue))
 
-    def _plan(self, dialogue: list[tuple[str, str]], state: dict[str, Any]) -> dict[str, Any]:
+    def _epistemic_gate(self, dialogue: list[tuple[str, str]]) -> dict[str, Any]:
+        instruction = """You are the epistemic gate for an adult professional
+coach. You receive only the current dialog, never the stored user profile.
+Decide whether the learner's current claim contains a grounded error,
+unsupported causal leap, false binary, or malformed framing that warrants
+correction or challenge. Do not infer incompetence from style, brevity, or past
+history. If the claim is plausible but under-specified, say no and ask for the
+missing criterion instead.
+
+Return JSON with:
+- correction_warranted: true|false
+- confidence: low|medium|high
+- claim_under_test: short phrase
+- reason: short grounded sentence
+- safe_next_move: one of reflection, ask_for_criteria, challenge, reframe, direct_answer
+"""
+        return self._json_pass(instruction, _dialog_text(dialogue))
+
+    def _plan(
+        self,
+        dialogue: list[tuple[str, str]],
+        state: dict[str, Any],
+        epistemic_gate: dict[str, Any],
+        user_model: dict[str, Any] | None = None,
+        session_summary: str = "",
+    ) -> dict[str, Any]:
         hint = _canonical_hint(dialogue)
         instruction = f"""You are the hidden strategist for an adult professional
 coach. Pick one highest-value target for the next turn. Do not try to fix every
@@ -249,12 +278,18 @@ Return JSON with:
 Do not choose challenge by default. If the learner is already circling a good
 insight, prefer amplify or anchor. If the learner is taking social or political
 risk, prefer validate_safety before challenge.
+The user profile may calibrate pressure and examples, but it may not determine
+whether the learner is wrong. Only the EPISTEMIC GATE may justify challenge
+because of a claim error. Delivery feedback can change phrasing, pacing, or
+example type; it cannot suppress a correction that the gate says is warranted.
 
 {CANONICAL_PATTERNS}"""
         hint_text = json.dumps(hint) if hint else "none"
         payload = (
             f"CANONICAL CUE ROUTER:\n{hint_text}\n\nSTATE:\n{json.dumps(state)}\n\n"
-            f"DIALOG:\n{_dialog_text(dialogue)}"
+            f"EPISTEMIC GATE:\n{json.dumps(epistemic_gate)}\n\n"
+            f"USER MODEL (hypothesis only):\n{json.dumps(user_model or {})}\n\n"
+            f"SESSION SUMMARY:\n{session_summary}\n\nDIALOG:\n{_dialog_text(dialogue)}"
         )
         plan = self._json_pass(instruction, payload)
         if hint and hint["intervention"] in INTERVENTIONS:
@@ -262,6 +297,25 @@ risk, prefer validate_safety before challenge.
             plan["why_now"] = hint["reason"]
             if hint.get("target"):
                 plan["target"] = hint["target"]
+        if (
+            plan.get("intervention") == "challenge"
+            and not epistemic_gate.get("correction_warranted")
+        ):
+            safe_move = epistemic_gate.get("safe_next_move", "reflection")
+            plan["intervention"] = safe_move if safe_move in INTERVENTIONS else "reflection"
+            plan["pressure"] = "medium"
+            plan["why_now"] = "The current claim is under-specified rather than grounded-wrong; ask for the missing criterion."
+            plan["target"] = "make the learner articulate the criterion or causal chain before challenging it"
+            plan["do_not_do"] = "do not treat prior user patterns as evidence that this claim is wrong"
+            plan["exit_condition"] = "the learner states a falsifiable criterion, boundary, or concrete mechanism"
+        mismatch = detect_pressure_mismatch(dialogue)
+        if mismatch:
+            plan["intervention"] = "back_off"
+            plan["pressure"] = "low"
+            plan["why_now"] = f"Current-session mismatch: {mismatch}"
+            plan["target"] = "reduce pressure, summarize the current insight, and give the learner room to continue"
+            plan["do_not_do"] = "do not pile on more questions or force a conclusion"
+            plan["exit_condition"] = "the learner re-engages with a concrete attempt or asks a specific question"
         return plan
 
     def _draft(
@@ -269,8 +323,11 @@ risk, prefer validate_safety before challenge.
         dialogue: list[tuple[str, str]],
         state: dict[str, Any],
         plan: dict[str, Any],
+        epistemic_gate: dict[str, Any],
         register_mode: str,
         temperature: float,
+        user_model: dict[str, Any] | None = None,
+        session_summary: str = "",
     ) -> str:
         register = SAILOR_REGISTER if register_mode == "sailor" else PROFESSIONAL_REGISTER
         system = f"""You are Jeremy McEntire in teach mode. You are coaching an
@@ -290,6 +347,15 @@ Selected plan:
 
 Observed state:
 {json.dumps(state)}
+
+Epistemic gate from current dialog only:
+{json.dumps(epistemic_gate)}
+
+Known user model, used only to calibrate pressure and examples:
+{json.dumps(user_model or {})}
+
+Session summary:
+{session_summary}
 
 {EXECUTION_RULES}
 """
@@ -366,10 +432,28 @@ Preserve learner agency.
         dialogue: list[tuple[str, str]],
         temperature: float = 0.7,
         register_mode: str = "professional",
+        user_model: dict[str, Any] | None = None,
+        session_summary: str = "",
     ) -> dict[str, Any]:
         state = self._observe(dialogue)
-        plan = self._plan(dialogue, state)
-        draft = self._draft(dialogue, state, plan, register_mode, temperature)
+        epistemic_gate = self._epistemic_gate(dialogue)
+        plan = self._plan(
+            dialogue,
+            state,
+            epistemic_gate,
+            user_model=user_model,
+            session_summary=session_summary,
+        )
+        draft = self._draft(
+            dialogue,
+            state,
+            plan,
+            epistemic_gate,
+            register_mode,
+            temperature,
+            user_model=user_model,
+            session_summary=session_summary,
+        )
         audit = self._audit(dialogue, state, plan, draft)
         text = draft
         if audit.get("verdict") == "revise":
@@ -390,6 +474,7 @@ Preserve learner agency.
             "mode_reason": plan.get("why_now", ""),
             "register": register_mode,
             "state": state,
+            "epistemic_gate": epistemic_gate,
             "plan": plan,
             "audit": audit,
         }
