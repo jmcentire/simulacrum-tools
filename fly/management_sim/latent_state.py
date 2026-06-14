@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import random
 from typing import Any
 
 from .models import HiddenState, PersonaDefinition
@@ -58,6 +59,9 @@ def initial_state(persona: PersonaDefinition, week: int = 1) -> HiddenState:
         purpose_alignment=_clamp(int(purpose["baseline"])),
         atrophy=10,
         manager_assessment=50,
+        output=_clamp(int((sum(persona.skills.values()) / max(1, len(persona.skills))) * 0.72)),
+        quality=_clamp(int((traits["reliability"] + persona.skills.get("quality", 60)) / 2)),
+        opinion_of_manager=50,
         known_hints=[],
     )
 
@@ -118,26 +122,131 @@ def apply_action(state: HiddenState, persona: PersonaDefinition, action: str) ->
     return next_state, deltas
 
 
-def advance_week(state: HiddenState, persona: PersonaDefinition) -> HiddenState:
+def advance_day(
+    state: HiddenState,
+    persona: PersonaDefinition,
+    seed: str,
+    team_context: dict[str, int] | None = None,
+    product_pressure: int = 55,
+) -> HiddenState:
+    """Run one simulated work interval after the manager leaves the room.
+
+    Manager actions are applied during the participant session. This tick is
+    the asynchronous world advance: people work, react to the team around
+    them, form opinions, and produce visible consequences before the next
+    participant session begins.
+    """
     next_state = HiddenState(**state.to_dict())
     next_state.week = state.week + 1
-    next_state.load = _clamp(next_state.load + 3)
-    next_state.battery = _clamp(next_state.battery - max(2, next_state.load // 18))
-    next_state.burnout = _clamp(next_state.burnout + max(0, next_state.load - 60) // 6)
-    next_state.atrophy = _clamp(next_state.atrophy + max(0, 50 - next_state.mastery_alignment) // 12)
+    rng = random.Random(seed)
+
+    context = team_context or {}
+    team_load = context.get("avg_load", state.load)
+    team_morale = context.get("avg_morale", state.morale)
+    team_trust = context.get("avg_trust", state.trust)
+    team_output = context.get("avg_output", state.output)
+
+    traits = persona.hidden["traits"]
+    energy = persona.hidden["energy"]
+    friction = persona.hidden["friction"]
+    alignment = (state.mastery_alignment + state.autonomy_alignment + state.purpose_alignment) // 3
+    overload = max(0, state.load - 58)
+    team_overload = max(0, team_load - 62)
+    ambiguity_penalty = max(0, 65 - traits["ambiguity_tolerance"]) // 10
+    friction_pressure = max(0, overload + team_overload + product_pressure - friction["tolerance"])
+    recovery = max(0, alignment - 55) // 10 + max(0, energy["resilience"] - 50) // 15
+
+    next_state.load = _clamp(
+        state.load
+        + 2
+        + max(0, product_pressure - 55) // 8
+        + team_overload // 8
+        + ambiguity_penalty
+        + rng.randint(-3, 4)
+    )
+    next_state.battery = _clamp(
+        state.battery
+        - max(2, next_state.load // 16)
+        - friction_pressure // 12
+        + recovery
+        + rng.randint(-3, 2)
+    )
+    next_state.burnout = _clamp(
+        state.burnout
+        + friction_pressure // 7
+        + max(0, 55 - next_state.battery) // 10
+        - recovery // 2
+        + rng.randint(-1, 3)
+    )
+    next_state.atrophy = _clamp(
+        state.atrophy
+        + max(0, 58 - state.mastery_alignment) // 9
+        + max(0, 50 - state.autonomy_alignment) // 12
+        - max(0, state.output - 65) // 14
+    )
+    next_state.trust = _clamp(
+        state.trust
+        + max(-3, min(3, (state.manager_assessment - 50) // 12))
+        + max(-2, min(2, (team_trust - 50) // 18))
+        - max(0, next_state.burnout - 70) // 10
+        + rng.randint(-2, 2)
+    )
+    next_state.morale = _clamp(
+        state.morale
+        + max(-4, min(5, (alignment - 55) // 8))
+        + max(-2, min(2, (team_morale - 55) // 20))
+        - max(0, next_state.burnout - 55) // 8
+        + rng.randint(-3, 2)
+    )
+    next_state.output = _clamp(
+        28
+        + traits["reliability"] // 2
+        + alignment // 3
+        + next_state.battery // 5
+        + max(0, team_output - 55) // 8
+        - next_state.burnout // 3
+        - next_state.load // 6
+        + rng.randint(-8, 8)
+    )
+    next_state.quality = _clamp(
+        30
+        + traits["reliability"] // 2
+        + persona.skills.get("quality", 60) // 3
+        + next_state.battery // 8
+        - next_state.burnout // 4
+        - max(0, next_state.load - 70) // 3
+        + rng.randint(-6, 6)
+    )
+    next_state.opinion_of_manager = _clamp(
+        state.opinion_of_manager
+        + (next_state.trust - 50) // 8
+        + (next_state.morale - 55) // 10
+        - max(0, next_state.burnout - 65) // 10
+        + rng.randint(-2, 2)
+    )
     next_state.flight_risk = _clamp(
         next_state.flight_risk
         + max(0, next_state.burnout - 60) // 6
         + max(0, 45 - next_state.trust) // 10
         + max(0, next_state.atrophy - 55) // 12
+        + max(0, 45 - next_state.opinion_of_manager) // 12
     )
-    if next_state.flight_risk > 70:
-        next_state.known_hints.append("has been less present in planning and less likely to volunteer context")
-    if next_state.burnout > 70:
-        next_state.known_hints.append("has started avoiding optional collaboration and follow-up work")
-    if next_state.trust < 40:
-        next_state.known_hints.append("answers in 1:1s have become shorter and more careful")
+    _append_hint(next_state, next_state.flight_risk > 70, "has been less present in planning and less likely to volunteer context")
+    _append_hint(next_state, next_state.burnout > 70, "has started avoiding optional collaboration and follow-up work")
+    _append_hint(next_state, next_state.trust < 40, "answers in 1:1s have become shorter and more careful")
+    _append_hint(next_state, next_state.output < 35, "has delivered less than expected without making a big issue of it")
+    _append_hint(next_state, next_state.quality < 40, "has begun shipping work that needs more follow-up than usual")
     return next_state
+
+
+def _append_hint(state: HiddenState, condition: bool, hint: str) -> None:
+    if condition and hint not in state.known_hints:
+        state.known_hints.append(hint)
+
+
+def advance_week(state: HiddenState, persona: PersonaDefinition) -> HiddenState:
+    """Backward-compatible alias for older callers and tests."""
+    return advance_day(state, persona, f"legacy:{state.persona_id}:{state.week + 1}")
 
 
 def visible_flags(state: HiddenState) -> list[str]:

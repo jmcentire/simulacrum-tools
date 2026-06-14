@@ -45,6 +45,9 @@ class HiddenState:
     purpose_alignment: int
     atrophy: int
     manager_assessment: int
+    output: int = 55
+    quality: int = 65
+    opinion_of_manager: int = 50
     known_hints: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

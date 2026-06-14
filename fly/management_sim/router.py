@@ -29,6 +29,64 @@ class ActionRequest(BaseModel):
     rationale: str = ""
 
 
+class PredictionRequest(BaseModel):
+    subject: str
+    outcome: str
+    direction: str
+    confidence: int
+    rationale: str
+
+
+class DayReportRequest(BaseModel):
+    report: str | None = None
+    observations: str = ""
+    hypotheses: str = ""
+    questions: str = ""
+    decision: str = ""
+    change_mind: str = ""
+    predictions: list[PredictionRequest] = Field(default_factory=list, max_length=3)
+
+    def journal(self) -> str | dict:
+        if self.report is not None:
+            return self.report
+        return {
+            "observations": self.observations,
+            "hypotheses": self.hypotheses,
+            "questions": self.questions,
+            "decision": self.decision,
+            "change_mind": self.change_mind,
+            "predictions": [prediction.model_dump() for prediction in self.predictions],
+        }
+
+
+class ReportRequest(BaseModel):
+    report: str
+
+
+class InterviewsRequest(BaseModel):
+    candidate_ids: list[str] = Field(min_length=2, max_length=2)
+
+
+class HireRequest(BaseModel):
+    candidate_id: str
+
+
+class TerminationsRequest(BaseModel):
+    persona_ids: list[str] = Field(min_length=2, max_length=2)
+
+
+class BackfillRequest(BaseModel):
+    candidate_id: str | None = None
+
+
+class TrackingRequest(BaseModel):
+    focus: list[str] = Field(min_length=1, max_length=3)
+
+
+class AdvanceRequest(BaseModel):
+    expected_day: int
+
+
 def _require_user(session_token: str | None) -> dict:
     user = auth.current_user(session_token)
     if not user:
@@ -84,11 +142,74 @@ async def action(req: ActionRequest, simulacrum_session: str | None = Cookie(Non
         raise HTTPException(status_code=400, detail=str(exc))
 
 
-@router.post("/advance")
-async def advance(simulacrum_session: str | None = Cookie(None)):
+@router.post("/day-report")
+async def day_report(req: DayReportRequest, simulacrum_session: str | None = Cookie(None)):
     user = _require_user(simulacrum_session)
     try:
-        state = service.advance_week(user["id"])
+        return {"run": service.submit_day_report(user["id"], req.journal())}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/week-report")
+async def week_report(req: ReportRequest, simulacrum_session: str | None = Cookie(None)):
+    user = _require_user(simulacrum_session)
+    try:
+        return {"run": service.submit_week_report(user["id"], req.report)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/tracking")
+async def tracking(req: TrackingRequest, simulacrum_session: str | None = Cookie(None)):
+    user = _require_user(simulacrum_session)
+    try:
+        return {"run": service.set_tracking_focus(user["id"], req.focus)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/interviews")
+async def interviews(req: InterviewsRequest, simulacrum_session: str | None = Cookie(None)):
+    user = _require_user(simulacrum_session)
+    try:
+        return {"run": service.select_interviews(user["id"], req.candidate_ids)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/hire")
+async def hire(req: HireRequest, simulacrum_session: str | None = Cookie(None)):
+    user = _require_user(simulacrum_session)
+    try:
+        return {"run": service.choose_hire(user["id"], req.candidate_id)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/terminations")
+async def terminations(req: TerminationsRequest, simulacrum_session: str | None = Cookie(None)):
+    user = _require_user(simulacrum_session)
+    try:
+        return {"run": service.select_terminations(user["id"], req.persona_ids)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/backfill")
+async def backfill(req: BackfillRequest, simulacrum_session: str | None = Cookie(None)):
+    user = _require_user(simulacrum_session)
+    try:
+        return {"run": service.choose_backfill(user["id"], req.candidate_id)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/advance")
+async def advance(req: AdvanceRequest, simulacrum_session: str | None = Cookie(None)):
+    user = _require_user(simulacrum_session)
+    try:
+        state = service.advance_day(user["id"], expected_day=req.expected_day)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {"run": service.public_state(state)}

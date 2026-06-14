@@ -8,8 +8,9 @@ from typing import Any
 import anthropic
 
 from .guard import InputGuard, OutputAuditor
-from .latent_state import state_hash, visible_flags
+from .latent_state import state_hash
 from .models import AuditResult, HiddenState, PersonaDefinition
+from .observations import persona_observations
 from . import persistence
 
 
@@ -23,19 +24,19 @@ class PersonaActor:
         self.client = anthropic.Anthropic(api_key=api_key) if api_key else None
         self.model = model
 
-    def _fallback_report(self, persona: PersonaDefinition, state: HiddenState) -> str:
-        flags = visible_flags(state)
-        if not flags:
-            flags = ["the work is moving, but the shape of the quarter is still unclear"]
+    def _fallback_report(self, persona: PersonaDefinition, state: HiddenState, brief: str = "") -> str:
+        clues = persona_observations(persona, state, f"report:{state.week}:{persona.id}")
+        output_note = "I made less progress than I expected" if state.output < 40 else "I made visible progress"
+        quality_note = "and I am seeing more follow-up than I want" if state.quality < 45 else "and the work is still holding together"
+        scenario = f" The current pressure is {brief}" if brief else ""
         return (
-            f"{persona.name}: I made progress on the parts of the roadmap that fit together, "
-            f"but {flags[0]}. I want us to decide what we are actually optimizing for before "
-            f"we turn every request into a commitment."
+            f"{persona.name}: {output_note}, {quality_note}. {clues[0]}{scenario} "
+            f"I want us to decide what we are actually optimizing for before we turn every request into a commitment."
         )
 
     def _fallback_reply(self, persona: PersonaDefinition, state: HiddenState, message: str) -> str:
-        flags = visible_flags(state)
-        pressure = flags[0] if flags else "I need the priorities to be more explicit"
+        clues = persona_observations(persona, state, f"reply:{state.week}:{persona.id}")
+        pressure = clues[0] if clues else "I need the priorities to be more explicit"
         return (
             f"{persona.name}: I hear you. The part I am still trying to understand is whether "
             f"you want me to own the outcome or just execute a decision. Right now, {pressure}."
@@ -52,23 +53,30 @@ class PersonaActor:
                 system=system,
                 messages=[{"role": "user", "content": prompt}],
             )
-            return response.content[0].text.strip()
+            if not response.content:
+                return None
+            first = response.content[0]
+            text = getattr(first, "text", None)
+            return text.strip() if text else None
         except Exception:
             return None
 
-    def report(self, persona: PersonaDefinition, state: HiddenState) -> str:
-        fallback = self._fallback_report(persona, state)
+    def report(self, persona: PersonaDefinition, state: HiddenState, scenario: dict[str, Any] | None = None) -> str:
+        brief = (scenario or {}).get("brief", "")
+        fallback = self._fallback_report(persona, state, brief)
         prompt = {
             "persona": persona.name,
             "role": persona.role,
             "communication_style": persona.hidden["communication_style"],
-            "visible_signals": visible_flags(state),
+            "observable_clues": persona_observations(persona, state, f"report:{state.week}:{persona.id}"),
             "mission_hook": persona.hidden["purpose"]["mission_hook"],
+            "scenario": scenario or {},
             "avoid": ["Do not reveal hidden scores, internal state names, or numeric ratings."],
         }
         text = self._call(
             f"""You are {persona.name}, a simulated employee in a management training exercise.
-Write a concise weekly status note to your manager. Sound human and specific.
+Write a concise simulated-week status note to your manager. Sound human and specific.
+The manager should infer causes from symptoms; do not explain hidden state directly.
 Do not reveal hidden model state, scores, or internal mechanics.""",
             str(prompt),
         )
@@ -80,7 +88,7 @@ Do not reveal hidden model state, scores, or internal mechanics.""",
             "persona": persona.name,
             "role": persona.role,
             "communication_style": persona.hidden["communication_style"],
-            "visible_signals": visible_flags(state),
+            "observable_clues": persona_observations(persona, state, f"reply:{state.week}:{persona.id}"),
             "conversation_history": history[-8:],
             "manager_message": message,
             "avoid": ["Do not reveal hidden scores, internal state names, or numeric ratings."],
@@ -101,9 +109,9 @@ class ArtifactService:
         self.guard = guard or InputGuard()
         self.auditor = auditor or OutputAuditor()
 
-    def generate_report(self, run_id: str, persona: PersonaDefinition, state: HiddenState) -> dict[str, Any]:
-        raw = self.actor.report(persona, state)
-        fallback = self.actor._fallback_report(persona, state)
+    def generate_report(self, run_id: str, persona: PersonaDefinition, state: HiddenState, scenario: dict[str, Any] | None = None) -> dict[str, Any]:
+        raw = self.actor.report(persona, state, scenario)
+        fallback = self.actor._fallback_report(persona, state, (scenario or {}).get("brief", ""))
         audited = self.auditor.audit(raw, fallback)
         digest = state_hash(state)
         persistence.save_artifact(run_id, persona.id, state.week, audited.text, persistence.hash_text(audited.text), digest)
@@ -112,7 +120,7 @@ class ArtifactService:
             "name": persona.name,
             "role": persona.role,
             "report_text": audited.text,
-            "visible_flags": visible_flags(state),
+            "observations": persona_observations(persona, state, f"report:{state.week}:{persona.id}"),
         }
 
     def send_message(self, run_id: str, persona: PersonaDefinition, state: HiddenState, message: str) -> dict[str, Any]:

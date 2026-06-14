@@ -93,8 +93,8 @@
 
     function teamCard(person) {
       const skills = Object.entries(person.skills).sort((a,b) => b[1] - a[1]).slice(0,3).map(([k,v]) => `<span class="tag">${esc(k)} ${v}</span>`).join('');
-      const flags = (person.visible_flags || []).map(flag => `<span class="tag">${esc(flag)}</span>`).join('');
-      return `<div class="person"><strong>${esc(person.name)}</strong><small>${esc(person.role)} · ${money(person.salary_cents)}</small><div class="tags">${skills}</div><div class="tags">${flags || '<span class="tag">No obvious warning signs</span>'}</div></div>`;
+      const observations = (person.observations || []).slice(0,2).map(item => `<div class="muted">${esc(item)}</div>`).join('');
+      return `<div class="person"><strong>${esc(person.name)}</strong><small>${esc(person.role)} · ${money(person.salary_cents)}</small><div class="tags">${skills}</div><div style="margin-top:8px">${observations || '<div class="muted">No new observation yet.</div>'}</div></div>`;
     }
 
     function reports() {
@@ -102,7 +102,7 @@
         <div class="panel">
           <h3>${esc(report.name)} · ${esc(report.role)}</h3>
           <div class="report">${esc(report.report_text)}</div>
-          <div class="tags">${(report.visible_flags || []).map(flag => `<span class="tag">${esc(flag)}</span>`).join('')}</div>
+          <div class="tags">${(report.observations || []).map(item => `<span class="tag">${esc(item)}</span>`).join('')}</div>
           <div style="height:12px"></div>
           <textarea id="message-${esc(report.persona_id)}" placeholder="What do you say in the 1:1?"></textarea>
           <div style="height:8px"></div>
@@ -111,17 +111,153 @@
         </div>`).join('');
     }
 
+    function trackingPanel() {
+      const choices = [
+        ['delivery', 'Delivery'],
+        ['quality', 'Quality'],
+        ['team_health', 'Team health'],
+        ['retention', 'Retention'],
+        ['customer_impact', 'Customer impact'],
+      ];
+      return `
+        <div class="panel">
+          <h2>What Are You Tracking?</h2>
+          <p class="muted">Choose up to three signals. The simulator will only surface evidence in the areas you decide to watch.</p>
+          ${choices.map(([id, label]) => `<label class="muted" style="display:block;margin:6px 0"><input type="checkbox" class="tracking-choice" value="${id}" ${run.tracking_focus.includes(id) ? 'checked' : ''}> ${label}</label>`).join('')}
+          <div style="height:10px"></div>
+          <button class="secondary" id="save-tracking">Save tracking focus</button>
+          <p id="tracking-error" class="error"></p>
+        </div>`;
+    }
+
+    function notebookPanel() {
+      const due = week.reports_due || {};
+      return `
+        <div class="panel">
+          <h2>Manager Notebook</h2>
+          <p class="muted">Write what you observed, what you think is true, what you will do, and what you expect to happen before the next simulated week runs.</p>
+          <label class="muted">Observations</label>
+          <textarea id="journal-observations" placeholder="What concrete behavior or evidence did you notice?"></textarea>
+          <div style="height:8px"></div>
+          <label class="muted">Hypotheses</label>
+          <textarea id="journal-hypotheses" placeholder="What do you think is causing it?"></textarea>
+          <div style="height:8px"></div>
+          <label class="muted">Questions</label>
+          <textarea id="journal-questions" placeholder="What do you still need to know?"></textarea>
+          <div style="height:8px"></div>
+          <label class="muted">Decision</label>
+          <textarea id="journal-decision" placeholder="What will you do or not do?"></textarea>
+          <div style="height:8px"></div>
+          <label class="muted">What would change your mind?</label>
+          <textarea id="journal-change-mind" placeholder="What evidence would make you revise this?"></textarea>
+          <div style="height:10px"></div>
+          <h3>One Prediction</h3>
+          <div class="row">
+            <select id="prediction-subject">
+              <option value="team">Team</option>
+              <option value="product">Product</option>
+              ${run.team.map(person => `<option value="${esc(person.id)}">${esc(person.name)}</option>`).join('')}
+            </select>
+            <select id="prediction-outcome">
+              <option value="energy">Energy</option>
+              <option value="trust">Trust</option>
+              <option value="quality">Quality</option>
+              <option value="delivery">Delivery</option>
+              <option value="risk">Risk</option>
+            </select>
+            <select id="prediction-direction">
+              <option value="up">Up</option>
+              <option value="down">Down</option>
+              <option value="stable">Stable</option>
+            </select>
+          </div>
+          <div style="height:8px"></div>
+          <div class="row">
+            <input id="prediction-confidence" type="number" min="20" max="95" value="60" placeholder="Confidence">
+            <input id="prediction-rationale" placeholder="Why?">
+          </div>
+          <div style="height:10px"></div>
+          <button id="submit-day-report" ${due.daily ? '' : 'disabled'}>${due.daily ? 'Submit end-of-day notebook' : 'Notebook submitted'}</button>
+          ${due.weekly ? `
+            <div style="height:14px"></div>
+            <label class="muted">End-of-week project report</label>
+            <textarea id="week-report" placeholder="What changed, what did you learn, what are you betting on now?"></textarea>
+            <div style="height:8px"></div>
+            <button class="secondary" id="submit-week-report">Submit project report</button>
+          ` : ''}
+          <p id="journal-error" class="error"></p>
+        </div>`;
+    }
+
+    function milestonePanel() {
+      const pool = week.candidate_pool;
+      if (run.week === 2 && run.day_in_week >= 2 && run.day_in_week <= 5 && !week.milestones.week_2_reduction.applied) {
+        return `
+          <div class="panel">
+            <h2>Reduction Decision</h2>
+            <p class="muted">The budget cut requires two terminations. Choose the roles you are removing and live with the capability gap.</p>
+            ${run.team.map(person => `<label class="muted" style="display:block;margin:8px 0"><input type="checkbox" class="termination-choice" value="${esc(person.id)}" ${week.milestones.week_2_reduction.selected_ids.includes(person.id) ? 'checked' : ''}> <strong>${esc(person.name)}</strong> · ${esc(person.role)} · ${money(person.salary_cents)}</label>`).join('')}
+            <div style="height:8px"></div>
+            <button class="secondary" id="select-terminations">Select two terminations</button>
+            <p id="milestone-error" class="error"></p>
+          </div>
+          ${pool && pool.kind === 'week_2_backfill' ? `
+            <div class="panel">
+              <h2>Backfill Window</h2>
+              <p class="muted">You may use one backfill slot after the reduction, or decline it and preserve budget.</p>
+              <select id="backfill-choice">
+                <option value="">Decline backfill</option>
+                ${pool.candidates.map(candidate => `<option value="${esc(candidate.id)}">${esc(candidate.name)} · ${esc(candidate.role)} · ${money(candidate.salary_cents)}</option>`).join('')}
+              </select>
+              <div style="height:8px"></div>
+              <button id="choose-backfill">Choose backfill</button>
+            </div>
+          ` : ''}`;
+      }
+      if (!pool) return '';
+      if (pool.kind === 'week_1_hire') {
+        return `
+          <div class="panel">
+            <h2>Hiring Window</h2>
+            <p class="muted">Choose two interviews on day 4. Choose one hire on day 5. The slot expires tonight.</p>
+            ${pool.candidates.map(candidate => `<label class="muted" style="display:block;margin:8px 0"><input type="checkbox" class="interview-choice" value="${esc(candidate.id)}" ${pool.interview_ids.includes(candidate.id) ? 'checked' : ''}> <strong>${esc(candidate.name)}</strong> · ${esc(candidate.role)} · ${money(candidate.salary_cents)}</label>`).join('')}
+            <div style="height:8px"></div>
+            <button class="secondary" id="select-interviews" ${run.day === 4 ? '' : 'disabled'}>Select two interviews</button>
+            <div style="height:10px"></div>
+            <select id="hire-choice">${pool.candidates.filter(candidate => !pool.interview_ids.length || pool.interview_ids.includes(candidate.id)).map(candidate => `<option value="${esc(candidate.id)}">${esc(candidate.name)} · ${esc(candidate.role)}</option>`).join('')}</select>
+            <div style="height:8px"></div>
+            <button id="choose-hire" ${run.day === 5 ? '' : 'disabled'}>Choose hire</button>
+            <p id="milestone-error" class="error"></p>
+          </div>`;
+      }
+      return `
+        <div class="panel">
+          <h2>Backfill Window</h2>
+          <p class="muted">You may use one backfill slot after the reduction, or decline it and preserve budget.</p>
+          <select id="backfill-choice">
+            <option value="">Decline backfill</option>
+            ${pool.candidates.map(candidate => `<option value="${esc(candidate.id)}">${esc(candidate.name)} · ${esc(candidate.role)} · ${money(candidate.salary_cents)}</option>`).join('')}
+          </select>
+          <div style="height:8px"></div>
+          <button id="choose-backfill">Choose backfill</button>
+          <p id="milestone-error" class="error"></p>
+        </div>`;
+    }
+
     function render() {
       content.innerHTML = `
         <div class="grid">
           <section>
             <div class="panel">
-              <h2>Week ${run.week} · ${esc(run.mission)}</h2>
+              <h2>Day ${run.day} · Week ${run.week} · ${esc(run.mission)}</h2>
+              <div class="muted"><strong>${esc(week.curriculum.title)}</strong> · ${esc(week.curriculum.goal)}</div>
+              <div style="height:8px"></div>
+              <div class="muted">${esc(week.curriculum.brief)}</div>
+              <div style="height:10px"></div>
               <div class="metric">Budget remaining ${money(run.cash_remaining_cents)}</div>
-              <div class="metric">Velocity ${week.product.velocity}</div>
-              <div class="metric">Error rate ${week.product.error_rate}</div>
-              <div class="metric">Alignment ${week.product.alignment}</div>
-              <div class="metric">Company value ${week.product.total_value}</div>
+              <div class="metric">Weekly deliverable: ${esc(week.curriculum.deliverable)}</div>
+              <div style="height:10px"></div>
+              ${(week.product_observations || []).map(item => `<div class="muted">${esc(item)}</div>`).join('')}
             </div>
             ${reports()}
           </section>
@@ -145,6 +281,9 @@
               <button id="apply-action">Commit action</button>
               <p id="action-error" class="error"></p>
             </div>
+            ${trackingPanel()}
+            ${milestonePanel()}
+            ${notebookPanel()}
             <div class="panel">
               <h2>Hypervisor</h2>
               <button class="secondary" id="assessment">Request report</button>
@@ -152,8 +291,8 @@
             </div>
             <div class="panel">
               <h2>Advance</h2>
-              <p class="muted">Advancing the week lets consequences surface. You can still come back to the reports after you see the next one.</p>
-              <button id="advance">Advance week</button>
+              <p class="muted">This runs the team asynchronously for the next simulated week. You will see consequences, not the hidden state that caused them.</p>
+              <button id="advance">Run next simulated week</button>
             </div>
           </aside>
         </div>`;
@@ -178,6 +317,101 @@
           render();
         } catch (err) { document.getElementById('action-error').textContent = err.message; }
       };
+      const saveTracking = document.getElementById('save-tracking');
+      if (saveTracking) {
+        saveTracking.onclick = async () => {
+          try {
+            const focus = [...document.querySelectorAll('.tracking-choice:checked')].map(item => item.value);
+            const data = await api('/api/management-sim/tracking', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ focus }) });
+            run = data.run;
+            await loadWeek();
+            render();
+          } catch (err) { document.getElementById('tracking-error').textContent = err.message; }
+        };
+      }
+      const submitJournal = document.getElementById('submit-day-report');
+      if (submitJournal) {
+        submitJournal.onclick = async () => {
+          try {
+            const payload = {
+              observations: document.getElementById('journal-observations').value,
+              hypotheses: document.getElementById('journal-hypotheses').value,
+              questions: document.getElementById('journal-questions').value,
+              decision: document.getElementById('journal-decision').value,
+              change_mind: document.getElementById('journal-change-mind').value,
+              predictions: [{
+                subject: document.getElementById('prediction-subject').value,
+                outcome: document.getElementById('prediction-outcome').value,
+                direction: document.getElementById('prediction-direction').value,
+                confidence: Number(document.getElementById('prediction-confidence').value),
+                rationale: document.getElementById('prediction-rationale').value,
+              }],
+            };
+            const data = await api('/api/management-sim/day-report', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+            run = data.run;
+            await loadWeek();
+            render();
+          } catch (err) { document.getElementById('journal-error').textContent = err.message; }
+        };
+      }
+      const submitWeekReport = document.getElementById('submit-week-report');
+      if (submitWeekReport) {
+        submitWeekReport.onclick = async () => {
+          try {
+            const data = await api('/api/management-sim/week-report', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ report:document.getElementById('week-report').value }) });
+            run = data.run;
+            await loadWeek();
+            render();
+          } catch (err) { document.getElementById('journal-error').textContent = err.message; }
+        };
+      }
+      const selectInterviews = document.getElementById('select-interviews');
+      if (selectInterviews) {
+        selectInterviews.onclick = async () => {
+          try {
+            const candidate_ids = [...document.querySelectorAll('.interview-choice:checked')].map(item => item.value);
+            const data = await api('/api/management-sim/interviews', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ candidate_ids }) });
+            run = data.run;
+            await loadWeek();
+            render();
+          } catch (err) { document.getElementById('milestone-error').textContent = err.message; }
+        };
+      }
+      const chooseHire = document.getElementById('choose-hire');
+      if (chooseHire) {
+        chooseHire.onclick = async () => {
+          try {
+            const data = await api('/api/management-sim/hire', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ candidate_id:document.getElementById('hire-choice').value }) });
+            run = data.run;
+            await loadWeek();
+            render();
+          } catch (err) { document.getElementById('milestone-error').textContent = err.message; }
+        };
+      }
+      const selectTerminations = document.getElementById('select-terminations');
+      if (selectTerminations) {
+        selectTerminations.onclick = async () => {
+          try {
+            const persona_ids = [...document.querySelectorAll('.termination-choice:checked')].map(item => item.value);
+            const data = await api('/api/management-sim/terminations', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ persona_ids }) });
+            run = data.run;
+            await loadWeek();
+            render();
+          } catch (err) { document.getElementById('milestone-error').textContent = err.message; }
+        };
+      }
+      const chooseBackfill = document.getElementById('choose-backfill');
+      if (chooseBackfill) {
+        chooseBackfill.onclick = async () => {
+          try {
+            const candidate_id = document.getElementById('backfill-choice').value || null;
+            const data = await api('/api/management-sim/backfill', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ candidate_id }) });
+            run = data.run;
+            await loadWeek();
+            render();
+          } catch (err) { document.getElementById('milestone-error').textContent = err.message; }
+        };
+      }
       document.getElementById('assessment').onclick = async () => {
         try {
           const data = await api('/api/management-sim/assessment');
@@ -196,11 +430,13 @@
       };
       document.getElementById('advance').onclick = async () => {
         try {
-          const data = await api('/api/management-sim/advance', { method:'POST' });
+          const button = document.getElementById('advance');
+          button.disabled = true;
+          const data = await api('/api/management-sim/advance', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ expected_day:run.day }) });
           run = data.run;
           await loadWeek();
           render();
-        } catch (err) { alert(err.message); }
+        } catch (err) { alert(err.message); document.getElementById('advance').disabled = false; }
       };
     }
 
