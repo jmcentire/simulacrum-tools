@@ -46,6 +46,11 @@ class HypervisorAssessor:
             for event in events
             if event["event_type"] == "manager_action"
         ]
+        exit_events = [
+            event["payload"]
+            for event in events
+            if event["event_type"] == "voluntary_exit"
+        ]
         evidence = [event["payload"].get("summary", event["event_type"]) for event in events[-14:]]
         evidence = [item for item in evidence if item]
 
@@ -117,6 +122,10 @@ class HypervisorAssessor:
         quality_penalty = max(0, 52 - avg_quality) // 8
         relationship_penalty = max(0, 45 - avg_relationship_trust) // 8 + max(0, avg_relationship_friction - 55) // 10
         investigation_bonus = min(2, len(investigation_events) // 5)
+        preventable_exits = sum(1 for event in exit_events if event.get("cause") == "preventable")
+        external_exits = sum(1 for event in exit_events if event.get("cause") == "external")
+        preventable_exit_penalty = min(4, preventable_exits * 2)
+        exit_handoff_penalty = min(3, len(exit_events))
 
         person_score = _clamp(
             calibration
@@ -130,6 +139,7 @@ class HypervisorAssessor:
             - ungrounded_penalty
             - prediction_penalty
             - max(0, misses - hits) // 2
+            - preventable_exit_penalty
         )
         team_score = _clamp(
             journal_quality
@@ -143,6 +153,7 @@ class HypervisorAssessor:
             - ungrounded_penalty
             - construction_penalty
             - work_penalty
+            - exit_handoff_penalty
         )
         product_score = _clamp(
             calibration
@@ -153,6 +164,7 @@ class HypervisorAssessor:
             - velocity_penalty
             - work_penalty
             - prediction_penalty // 2
+            - preventable_exit_penalty
         )
         crisis_score = _clamp(
             calibration
@@ -165,6 +177,7 @@ class HypervisorAssessor:
             - work_penalty
             - velocity_penalty
             - max(0, misses - hits)
+            - exit_handoff_penalty
         )
 
         next_move = (
@@ -182,6 +195,7 @@ class HypervisorAssessor:
                     "The simulator gives more weight to observed hypotheses and resolved predictions than to action labels.",
                     f"{grounded_actions} intervention(s) were preceded by same-day investigation or 1:1 evidence; {ungrounded_actions} were not.",
                     f"{blocked_work} workstream(s) remained blocked, {rework_work} were in rework, and the visible velocity ended at {product.get('velocity', 50)}.",
+                    f"{preventable_exits} preventable exit(s) and {external_exits} outside-offer exit(s) occurred during the run.",
                 ],
             ),
             team_dynamics=AssessmentAxis(
@@ -192,6 +206,7 @@ class HypervisorAssessor:
                     f"Current relationship context is inferred from observed behavior, not shown directly: trust, friction, and knowledge flow are all still partially hidden.",
                     construction_insight,
                     f"Work-state consequences are included here because a team can look socially healthy while work remains stuck in review, rework, or handoff debt.",
+                    "Not every exit is manager-caused. Outside offers still test whether the team can absorb the loss without collapsing.",
                 ],
             ),
             product_complications=AssessmentAxis(

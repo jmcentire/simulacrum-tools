@@ -14,6 +14,7 @@ from management_sim.latent_state import apply_action, initial_state  # noqa: E40
 from management_sim.relationships import relationship_context  # noqa: E402
 from management_sim.relationships import initial_relationships  # noqa: E402
 from management_sim.persona_store import PersonaStore  # noqa: E402
+from management_sim.retention import advance_retention_watch, choose_voluntary_exit, initial_retention_watch  # noqa: E402
 from management_sim.service import ManagementSimService  # noqa: E402
 from management_sim.structure import team_structure  # noqa: E402
 from management_sim.work import advance_workstreams, initial_workstreams  # noqa: E402
@@ -382,6 +383,69 @@ class ManagementSimTests(unittest.TestCase):
         collaborator_blocked = sum(1 for item in collaborator_work if item["state"] == "blocked")
         decision_blocked = sum(1 for item in decision_work if item["state"] == "blocked")
         self.assertGreater(collaborator_blocked, decision_blocked)
+
+    def test_retention_warning_precedes_voluntary_exit(self):
+        persona = PersonaStore().get("trent")
+        state = initial_state(persona)
+        state.flight_risk = 72
+        state.burnout = 68
+        state.trust = 38
+        state.opinion_of_manager = 38
+        watch = initial_retention_watch(["trent"])
+        warnings = []
+        for _day in range(3):
+            watch, warnings = advance_retention_watch(
+                watch,
+                {"trent": state.to_dict()},
+                {"trent": persona},
+                [{"persona_id": "trent", "action": "increase_checkins"}],
+            )
+        self.assertTrue(any("check-in" in item["title"].lower() for item in warnings))
+        self.assertIsNone(choose_voluntary_exit("retention-test", 10, watch, {"trent": state.to_dict()}, {"trent": persona}))
+
+    def test_sustained_micromanagement_can_force_delayed_voluntary_exit(self):
+        persona = PersonaStore().get("trent")
+        state = initial_state(persona)
+        state.flight_risk = 82
+        state.burnout = 74
+        state.trust = 34
+        state.opinion_of_manager = 34
+        watch = initial_retention_watch(["trent"])
+        for _day in range(8):
+            watch, _warnings = advance_retention_watch(
+                watch,
+                {"trent": state.to_dict()},
+                {"trent": persona},
+                [{"persona_id": "trent", "action": "increase_checkins"}],
+            )
+        exit_decision = choose_voluntary_exit("retention-test", 12, watch, {"trent": state.to_dict()}, {"trent": persona})
+        self.assertIsNotNone(exit_decision)
+        self.assertEqual(exit_decision["persona_id"], "trent")
+        self.assertEqual(exit_decision["cause"], "preventable")
+        self.assertEqual(exit_decision["reason"], "micromanagement")
+
+    def test_service_applies_voluntary_exit_and_records_event(self):
+        service = ManagementSimService()
+        state = service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        state["day"] = 12
+        state["week"] = 3
+        state["day_in_week"] = 2
+        state["retention_watch"]["trent"] = {
+            "pressure_days": 8,
+            "micromanagement_days": 8,
+            "stagnation_days": 0,
+            "overload_days": 4,
+            "trust_loss_days": 4,
+            "last_reason": "micromanagement",
+            "last_pressure": 8,
+        }
+        state["team_state"]["trent"]["flight_risk"] = 84
+        state["team_state"]["trent"]["burnout"] = 76
+        service._apply_voluntary_attrition("user-1", state)
+        self.assertNotIn("trent", state["team"])
+        self.assertTrue(any(event["kind"] == "voluntary_exit" for event in state["world_events"]))
+        events = persistence.list_events(state["run_id"], "user-1")
+        self.assertEqual(len([event for event in events if event["event_type"] == "voluntary_exit"]), 1)
 
     def test_owner_departure_creates_handoff_debt_not_permanent_done_work_block(self):
         personas = {persona.id: persona for persona in PersonaStore().load_all()}

@@ -23,6 +23,7 @@ ACTION_VOCABULARY = {
     "recognize_work": "Recognize useful work publicly or privately.",
     "protect_slack": "Cut scope or move work to preserve capacity.",
     "push_scope": "Keep commitments and ask for more output.",
+    "assign_maintenance": "Keep the person on routine maintenance work.",
     "cross_train": "Invest in pairing, documentation, and redundancy.",
     "mediate_conflict": "Address a team friction directly.",
     "defer_decision": "Hold a decision while gathering more context.",
@@ -82,6 +83,12 @@ def _match_bonus(persona: PersonaDefinition, action: str) -> int:
         return -5
     if action == "push_scope" and hidden["energy"]["resilience"] < 60:
         return -6
+    if action == "assign_maintenance" and (
+        "maintenance work" in hidden["purpose"]["anti_purpose"]
+        or "repetitive cleanup" in hidden["energy"]["drains"]
+        or hidden["mastery"]["preferred"] >= 78
+    ):
+        return -6
     return 0
 
 
@@ -97,6 +104,7 @@ def apply_action(state: HiddenState, persona: PersonaDefinition, action: str) ->
         "recognize_work": {"trust": 2, "morale": 5, "purpose_alignment": 2},
         "protect_slack": {"battery": 5, "burnout": -5, "load": -7, "trust": 2},
         "push_scope": {"battery": -8, "burnout": 8, "load": 9, "morale": -4, "purpose_alignment": -2},
+        "assign_maintenance": {"mastery_alignment": -8, "purpose_alignment": -3, "morale": -3, "load": 1},
         "cross_train": {"trust": 2, "mastery_alignment": 3, "load": 2, "atrophy": -4},
         "mediate_conflict": {"trust": 3, "morale": 2, "manager_assessment": 3},
         "defer_decision": {"trust": -1, "morale": -1, "load": 1, "purpose_alignment": -1},

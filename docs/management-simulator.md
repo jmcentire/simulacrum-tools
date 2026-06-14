@@ -20,6 +20,8 @@ The current module implements a twenty-session curriculum loop:
   and calendar channels
 - watch work move through scoped, in-progress, review, rework, done, and
   maintenance states, including handoff debt when an owner leaves
+- see delayed retention warnings before a person gives notice: micromanagement,
+  stagnant work, overload, trust loss, and outside offers are separate causes
 - write an end-of-day notebook: observations, hypotheses, questions, decision,
   prediction, and what would change the manager's mind
 - advance the world asynchronously and let consequences surface
@@ -43,6 +45,8 @@ The current module implements a twenty-session curriculum loop:
   transitions, and handoff debt
 - `interviews.py` generates noisy candidate interview signals from constrained
   prompts without exposing hidden persona state
+- `retention.py` models delayed warning signals, preventable attrition, outside
+  offers, and resignation timing
 - `guard.py` blocks prompt injection/state probing and audits output leakage
 - `artifacts.py` generates reports and persona dialogue
 - `persistence.py` stores runs, snapshots, artifacts, turns, and event logs
@@ -77,11 +81,15 @@ The simulator models a small number of load-bearing dynamics:
    engaged or quietly atrophies.
 3. Team composition, redundancy, interface cleanliness, and dependency chains
    determine whether work survives stress.
-4. Manager attention determines what becomes knowable; ignored signals stay
+4. Retention is not fully controllable. Sustained manager-caused pressure can
+   cause preventable exits, while outside offers can still remove strong people.
+   The manager is assessed on avoidable loss and on whether the team survives
+   any loss through redundancy and handoff quality.
+5. Manager attention determines what becomes knowable; ignored signals stay
    hidden until they become consequences.
-5. Actions have delayed, noisy effects. The manager gets one timeline, not an
+6. Actions have delayed, noisy effects. The manager gets one timeline, not an
    alternate-history oracle.
-6. A well-built team should survive discontinuity better than a team that only
+7. A well-built team should survive discontinuity better than a team that only
    looked productive under static conditions.
 
 Roadmap pressure is separate from delivery velocity. Clarifying scope reduces

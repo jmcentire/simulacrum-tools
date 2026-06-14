@@ -25,6 +25,7 @@ from .relationships import (
     relationship_context,
     remove_persona_relationships,
 )
+from .retention import advance_retention_watch, choose_voluntary_exit, initial_retention_watch
 from .structure import structure_pressure, team_structure
 from .work import advance_workstreams, initial_workstreams, public_workstreams, work_artifacts, work_pressure
 
@@ -35,6 +36,30 @@ FINAL_DAY = 20
 
 def _clamp(value: int) -> int:
     return max(0, min(100, value))
+
+
+def _preventable_exit_summary(name: str, reason: str) -> str:
+    if reason == "micromanagement":
+        return f"{name} accepted another role after saying the current review cadence left too little room to own decisions."
+    if reason == "stagnation":
+        return f"{name} accepted another role after asking for work with more room to learn and build."
+    if reason == "overload":
+        return f"{name} accepted another role after several weeks of carrying more work than they could sustainably absorb."
+    if reason == "trust_loss":
+        return f"{name} accepted another role after becoming less convinced the team could change course."
+    return f"{name} accepted another role after several weeks of disengaging from the current work."
+
+
+def _preventable_exit_detail(name: str, reason: str) -> str:
+    if reason == "micromanagement":
+        return f"{name} said they were tired of owning the work without owning the decisions. The team now has to reconstruct the context they carried."
+    if reason == "stagnation":
+        return f"{name} said the role had become mostly maintenance and follow-up work. The team now has to reconstruct the context they carried."
+    if reason == "overload":
+        return f"{name} said they could not keep absorbing the extra work without dropping quality. The team now has to reconstruct the context they carried."
+    if reason == "trust_loss":
+        return f"{name} said they no longer understood whether the team was allowed to change course. The team now has to reconstruct the context they carried."
+    return f"{name} said the work no longer felt worth the cost. The team now has to reconstruct the context they carried."
 
 
 class ManagementSimService:
@@ -69,6 +94,9 @@ class ManagementSimService:
             "artifact_inbox": [],
             "day_actions": [],
             "world_events": [],
+            "retention_watch": initial_retention_watch(team),
+            "retention_alerts": [],
+            "departed_people": [],
             "workstreams": initial_workstreams(team, self._persona_map(team)),
             "candidate_interviews": {},
             "milestones": {
@@ -521,10 +549,18 @@ class ManagementSimService:
         self._resolve_predictions(user_id, state, before_by_persona, next_team_state, before_product, next_product)
         state["product"] = next_product
         state["product_pressure"] = self._advance_product_pressure(state, next_product)
+        state["retention_watch"], retention_warnings = advance_retention_watch(
+            state["retention_watch"],
+            state["team_state"],
+            self._persona_map(state["team"]),
+            state["day_actions"],
+        )
         state["day"] += 1
         state["week"] = week_for_day(state["day"])
         state["day_in_week"] = day_in_week(state["day"])
+        self._append_retention_warnings(state, retention_warnings)
         self._expire_world_events(state)
+        self._apply_voluntary_attrition(user_id, state)
         self._seed_discontinuities(state)
         state["day_actions"] = []
         state["attention"] = {"budget": 4, "remaining": 4, "spent": []}
@@ -666,6 +702,15 @@ class ManagementSimService:
             changed = True
         if "world_events" not in state:
             state["world_events"] = []
+            changed = True
+        if "retention_watch" not in state:
+            state["retention_watch"] = initial_retention_watch(state["team"])
+            changed = True
+        if "retention_alerts" not in state:
+            state["retention_alerts"] = []
+            changed = True
+        if "departed_people" not in state:
+            state["departed_people"] = []
             changed = True
         if "workstreams" not in state:
             state["workstreams"] = initial_workstreams(state["team"], self._persona_map(state["team"]))
@@ -829,7 +874,7 @@ class ManagementSimService:
         if milestone["applied"]:
             return
         for persona_id in milestone["selected_ids"]:
-            self._remove_persona(state, persona_id)
+            self._remove_persona(state, persona_id, "termination")
         if milestone["backfill_selected_id"]:
             self._add_hire(state, milestone["backfill_selected_id"])
         milestone["applied"] = True
@@ -846,15 +891,18 @@ class ManagementSimService:
         hidden["output"] = min(hidden["output"], 38)
         hidden["quality"] = min(hidden["quality"], 58)
         state["team_state"][persona_id] = hidden
+        state["retention_watch"][persona_id] = initial_retention_watch([persona_id])[persona_id]
         add_persona_relationships(state["relationships"], state["run_id"], persona_id, state["team"], self._persona_map(state["team"]))
 
-    def _remove_persona(self, state: dict[str, Any], persona_id: str) -> None:
+    def _remove_persona(self, state: dict[str, Any], persona_id: str, reason: str = "removed") -> None:
         if persona_id not in state["team"]:
             return
         persona = self.personas.get(persona_id)
         state["team"].remove(persona_id)
         state["cash_remaining_cents"] += persona.salary_cents
         state["team_state"].pop(persona_id, None)
+        state["retention_watch"].pop(persona_id, None)
+        state["departed_people"].append({"persona_id": persona_id, "reason": reason, "day": state["day"]})
         remove_persona_relationships(state["relationships"], persona_id)
 
     def _refresh_day_context(self, state: dict[str, Any]) -> None:
@@ -879,6 +927,19 @@ class ManagementSimService:
                     "revealed": False,
                 }
             )
+        for alert in state.get("retention_alerts", []):
+            if alert["start_day"] == state["day"]:
+                state["artifact_inbox"].append(
+                    {
+                        "id": alert["id"],
+                        "kind": "retention",
+                        "channel": "calendar",
+                        "title": alert["title"],
+                        "preview": alert["title"],
+                        "detail": alert["detail"],
+                        "revealed": False,
+                    }
+                )
         for event in reversed(self._public_world_events(state)):
             if event["start_day"] == state["day"]:
                 state["artifact_inbox"].insert(
@@ -893,6 +954,76 @@ class ManagementSimService:
                         "revealed": True,
                     },
                 )
+
+    def _append_retention_warnings(self, state: dict[str, Any], warnings: list[dict[str, Any]]) -> None:
+        for warning in warnings:
+            state["retention_alerts"].append(
+                {
+                    "id": f"{state['day']}:retention:{warning['persona_id']}",
+                    "persona_id": warning["persona_id"],
+                    "reason": warning["reason"],
+                    "title": warning["title"],
+                    "detail": warning["detail"],
+                    "start_day": state["day"],
+                }
+            )
+
+    def _apply_voluntary_attrition(self, user_id: str, state: dict[str, Any]) -> None:
+        exit_decision = choose_voluntary_exit(
+            state["run_id"],
+            state["day"],
+            state["retention_watch"],
+            state["team_state"],
+            self._persona_map(state["team"]),
+        )
+        if not exit_decision:
+            return
+        persona_id = exit_decision["persona_id"]
+        persona = self.personas.get(persona_id)
+        context = relationship_context(state["relationships"], persona_id)
+        structure = self._team_structure(state)
+        severity = 4 + max(0, 70 - structure["redundancy"]) // 3 + max(0, 70 - structure["bus_factor"]) // 3 + max(0, 64 - context["knowledge_flow"]) // 6
+        self._remove_persona(state, persona_id, "voluntary_exit")
+        for hidden in state["team_state"].values():
+            hidden["load"] = _clamp(hidden["load"] + 3 + severity // 2)
+            hidden["battery"] = _clamp(hidden["battery"] - 2)
+        state["product"]["velocity"] = _clamp(state["product"]["velocity"] - 4 - severity)
+        state["product"]["error_rate"] = _clamp(state["product"]["error_rate"] + 2 + severity // 2)
+        state["product_pressure"] = _clamp(state["product_pressure"] + 4 + severity)
+        if exit_decision["cause"] == "preventable":
+            summary = _preventable_exit_summary(persona.name, exit_decision["reason"])
+            detail = _preventable_exit_detail(persona.name, exit_decision["reason"])
+        else:
+            summary = f"{persona.name} accepted an outside offer and is leaving after the next handoff."
+            detail = f"{persona.name} accepted an outside offer. The timing was not caused by a single manager action, but the team now has to reconstruct their context and redistribute the work."
+        state["world_events"].append(
+            {
+                "kind": "voluntary_exit",
+                "title": f"{persona.name} gave notice.",
+                "summary": summary,
+                "detail": detail,
+                "start_day": state["day"],
+                "end_day": state["day"] + 2,
+                "status": "active",
+                "affected_persona_id": persona_id,
+                "severity": severity,
+                "cause": exit_decision["cause"],
+                "reason": exit_decision["reason"],
+            }
+        )
+        persistence.append_event(
+            state["run_id"],
+            user_id,
+            "voluntary_exit",
+            {
+                "day": state["day"],
+                "persona_id": persona_id,
+                "cause": exit_decision["cause"],
+                "reason": exit_decision["reason"],
+                "severity": severity,
+                "summary": f"{persona.name} gave notice.",
+            },
+        )
 
     def _spend_attention(self, state: dict[str, Any], kind: str, target: str, summary: str) -> None:
         if state["attention"]["remaining"] <= 0:
@@ -995,6 +1126,8 @@ class ManagementSimService:
                 pressure += max(3, int(event.get("severity", 7)) // 2)
             elif event["kind"] == "dependency_leave":
                 pressure += max(4, int(event.get("severity", 8)) // 2)
+            elif event["kind"] == "voluntary_exit":
+                pressure += max(4, int(event.get("severity", 8)) // 2)
         return pressure + structure_pressure(structure)
 
     def _team_context(self, states: list[HiddenState]) -> dict[str, int]:
@@ -1054,3 +1187,8 @@ class ManagementSimService:
         elif action == "cross_train":
             product["total_value"] = min(100, product["total_value"] + 2)
             product["error_rate"] = max(0, product["error_rate"] - 1)
+        elif action == "assign_maintenance":
+            product["velocity"] = min(100, product["velocity"] + 1)
+            product["error_rate"] = max(0, product["error_rate"] - 2)
+            product["alignment"] = max(0, product["alignment"] - 1)
+            state["product_pressure"] = min(100, state["product_pressure"] + 1)
