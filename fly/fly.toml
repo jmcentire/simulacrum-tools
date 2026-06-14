@@ -12,7 +12,7 @@
 # Update:
 #   fly deploy
 
-app = "simulacrum-CHANGE-ME"
+app = "simulacrum-jmc"
 primary_region = "iad"  # us-east; change to closer if needed
 
 [build]
@@ -34,6 +34,10 @@ primary_region = "iad"  # us-east; change to closer if needed
 
 [env]
   SIMULACRUM_MODEL = "claude-sonnet-4-5"
+
+[[mounts]]
+  source = "simulacrum_data"
+  destination = "/data"
 
 [[vm]]
   cpu_kind = "shared"
