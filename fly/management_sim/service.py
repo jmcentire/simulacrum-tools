@@ -287,6 +287,7 @@ class ManagementSimService:
         state["team_state"][persona_id] = after.to_dict()
         state["day_actions"].append({"persona_id": persona_id, "action": action})
         self._update_product_metrics_for_action(state, action)
+        self._apply_workstream_action(state, persona_id, action)
         persistence.save_run(user_id, state)
         persistence.save_snapshot(state["run_id"], after, after_hash)
         persistence.append_event(
@@ -1194,3 +1195,79 @@ class ManagementSimService:
             product["error_rate"] = max(0, product["error_rate"] - 2)
             product["alignment"] = max(0, product["alignment"] - 1)
             state["product_pressure"] = min(100, state["product_pressure"] + 1)
+
+    def _apply_workstream_action(self, state: dict[str, Any], persona_id: str, action: str) -> None:
+        """Translate management actions into visible ownership changes.
+
+        Cross-training creates a prepared backup before a departure happens.
+        Delegating ownership after a reduction decision moves a threatened
+        workstream while the outgoing owner is still available to transfer
+        context. Both moves carry handoff debt; neither is a free rescue.
+        """
+        workstreams = state.get("workstreams", [])
+        if not workstreams or persona_id not in state.get("team", []):
+            return
+
+        selected_for_termination = set(state.get("milestones", {}).get("week_2_reduction", {}).get("selected_ids", []))
+        if action == "cross_train":
+            owned = [item for item in workstreams if item.get("owner_id") == persona_id]
+            if not owned:
+                owned = [
+                    item
+                    for item in workstreams
+                    if item.get("owner_id") != persona_id
+                    and persona_id not in selected_for_termination
+                ]
+            for item in sorted(owned, key=lambda item: (-item.get("priority", 0), item.get("handoff_debt", 0)))[:1]:
+                candidates = [
+                    candidate_id
+                    for candidate_id in state["team"]
+                    if candidate_id != item.get("owner_id") and candidate_id not in selected_for_termination
+                ]
+                if not candidates:
+                    continue
+                backup_id = max(
+                    candidates,
+                    key=lambda candidate_id: self.personas.get(candidate_id).skills.get(item["skill"], 0),
+                )
+                item["backup_owner_id"] = backup_id
+                item["backup_ready"] = min(100, item.get("backup_ready", 0) + 38)
+                item["handoff_debt"] = max(0, item.get("handoff_debt", 0) - 1)
+                if item["state"] == "blocked" and "context" in item.get("blocked_reason", "").lower():
+                    item["state"] = "in_progress"
+                    item["completion"] = max(item["completion"], 30)
+                    item["blocked_reason"] = "A second person now has enough context to continue the work."
+            return
+
+        if action == "delegate_ownership":
+            threatened = [
+                item
+                for item in workstreams
+                if item.get("owner_id") in selected_for_termination and persona_id not in selected_for_termination
+            ]
+            if not threatened:
+                threatened = [
+                    item
+                    for item in workstreams
+                    if item.get("state") in {"blocked", "rework"} and item.get("owner_id") != persona_id
+                ]
+            if not threatened:
+                return
+            item = max(
+                threatened,
+                key=lambda candidate: (
+                    self.personas.get(persona_id).skills.get(candidate["skill"], 0)
+                    - self.personas.get(candidate["owner_id"]).skills.get(candidate["skill"], 0)
+                    + candidate.get("priority", 0) * 10
+                ),
+            )
+            if item.get("owner_id") == persona_id:
+                return
+            item["owner_id"] = persona_id
+            item["backup_owner_id"] = None
+            item["backup_ready"] = 0
+            item["handoff_debt"] = max(item.get("handoff_debt", 0), 1)
+            if item["state"] == "blocked":
+                item["state"] = "in_progress"
+                item["completion"] = max(item["completion"], 30)
+            item["blocked_reason"] = "Ownership moved before the reduction; the new owner is absorbing the context now."

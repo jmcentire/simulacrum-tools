@@ -66,6 +66,8 @@ def initial_workstreams(team: list[str], personas: dict[str, PersonaDefinition])
                 "blocked_reason": "",
                 "rework": 0,
                 "handoff_debt": 0,
+                "backup_owner_id": None,
+                "backup_ready": 0,
                 "decision_debt": 0,
                 "pivot_applied": False,
                 "completion": 18,
@@ -102,16 +104,22 @@ def advance_workstreams(
         item["age"] = min(365, item.get("age", 0) + 1)
         owner_id = item["owner_id"]
         if owner_id not in team:
-            replacement_id = _best_replacement(item, available_team, personas)
+            backup_id = item.get("backup_owner_id")
+            replacement_id = backup_id if backup_id in available_team else _best_replacement(item, available_team, personas)
             if not replacement_id:
                 item["state"] = "blocked"
                 item["blocked_reason"] = "The previous owner left and nobody has picked up the context."
                 continue
             item["owner_id"] = replacement_id
-            item["handoff_debt"] = max(item.get("handoff_debt", 0), 2)
+            prepared_backup = replacement_id == backup_id and item.get("backup_ready", 0) >= 60
+            item["handoff_debt"] = max(item.get("handoff_debt", 0), 1 if prepared_backup else 2)
             if item["state"] in {"done", "maintenance"}:
                 item["state"] = "maintenance"
                 item["blocked_reason"] = "The previous owner left. The new owner is carrying the system, but the maintenance context is thinner."
+            elif prepared_backup:
+                item["state"] = "in_progress"
+                item["completion"] = max(34, item["completion"] - 3)
+                item["blocked_reason"] = "The previous owner left, but the planned backup already had enough context to keep the work moving."
             else:
                 item["state"] = "blocked"
                 item["completion"] = max(22, item["completion"] - 8)

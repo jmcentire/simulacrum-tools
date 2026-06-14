@@ -545,6 +545,36 @@ class ManagementSimTests(unittest.TestCase):
         self.assertNotEqual(moved["owner_id"], departing_owner)
         self.assertGreater(moved["handoff_debt"], 0)
 
+    def test_cross_train_prepares_backup_before_owner_departure(self):
+        personas = {persona.id: persona for persona in PersonaStore().load_all()}
+        team = ["maya", "jonah", "elena"]
+        workstreams = initial_workstreams(team, personas)
+        migration = next(item for item in workstreams if item["id"] == "migration")
+        migration["backup_owner_id"] = "jonah"
+        migration["backup_ready"] = 76
+        remaining_team = ["jonah", "elena"]
+        team_state = {persona_id: initial_state(personas[persona_id]).to_dict() for persona_id in remaining_team}
+        advanced = advance_workstreams(workstreams, remaining_team, team_state, personas, [], "prepared-owner-departure")
+        moved = next(item for item in advanced if item["id"] == "migration")
+        self.assertEqual(moved["owner_id"], "jonah")
+        self.assertEqual(moved["state"], "in_progress")
+        self.assertLessEqual(moved["handoff_debt"], 1)
+
+    def test_delegate_ownership_moves_threatened_work_before_reduction(self):
+        service = ManagementSimService()
+        state = service.create_run("user-1", "Build a reliable workflow platform", 1_250_000_00)
+        state["day"] = 8
+        state["week"] = 2
+        state["day_in_week"] = 3
+        state["milestones"]["week_2_reduction"]["selected_ids"] = ["maya", "rhea"]
+        persistence.save_run("user-1", state)
+        before = next(item for item in state["workstreams"] if item["owner_id"] == "maya")
+        service.apply_manager_action("user-1", "jonah", "delegate_ownership", "Move a threatened workstream before the cut.")
+        after_state = service.load_active_run("user-1")
+        moved = next(item for item in after_state["workstreams"] if item["id"] == before["id"])
+        self.assertEqual(moved["owner_id"], "jonah")
+        self.assertGreaterEqual(moved["handoff_debt"], 1)
+
     def test_scope_pivot_rolls_back_work_that_was_already_in_flight(self):
         personas = {persona.id: persona for persona in PersonaStore().load_all()}
         team = ["maya", "jonah", "elena", "trent", "rhea"]
