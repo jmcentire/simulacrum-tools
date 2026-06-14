@@ -1,0 +1,100 @@
+{
+  "backfill_fund_cents": 2448000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 61,
+      "outsources": [
+        "architecture decisions",
+        "priority tradeoffs"
+      ],
+      "owns": [
+        "well-bounded implementation"
+      ],
+      "preferred": 61
+    },
+    "communication_style": "methodical, asks about escape hatches",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 69,
+      "drains": [
+        "shipping known defects",
+        "vague acceptance criteria"
+      ],
+      "energizers": [
+        "test depth",
+        "clear failure modes"
+      ],
+      "resilience": 61
+    },
+    "friction": {
+      "baseline": 19,
+      "tolerance": 61,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 81,
+      "drains": [
+        "shipping known defects",
+        "vague acceptance criteria"
+      ],
+      "energizers": [
+        "test depth",
+        "clear failure modes"
+      ],
+      "focus": "finding the thing everyone else missed",
+      "preferred": 75
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "finding the thing everyone else missed",
+        "quality systems"
+      ],
+      "mission_hook": "finding the thing everyone else missed"
+    },
+    "traits": {
+      "ambiguity_tolerance": 56,
+      "autonomy_need": 61,
+      "burnout_risk": 39,
+      "coachability": 88,
+      "collaboration": 82,
+      "crisis_response": "steady",
+      "integrity": 90,
+      "mentorship": 74,
+      "politics": "neutral",
+      "ramp_rate": 81,
+      "reliability": 92
+    }
+  },
+  "id": "rhea",
+  "name": "Rhea Okafor",
+  "role": "Senior QA / Test Automation",
+  "salary_cents": 13600000,
+  "schema_version": 1,
+  "skills": {
+    "backend": 57,
+    "frontend": 63,
+    "infra": 51,
+    "product": 72,
+    "quality": 94
+  },
+  "visible": {
+    "ambition": "quality systems",
+    "interview": "methodical, asks about escape hatches",
+    "motivation": "correctness",
+    "seniority": "senior"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 2880000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 81,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 81
+    },
+    "communication_style": "sharp, concise, test-first",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 64,
+      "drains": [
+        "repetitive maintenance",
+        "shallow work"
+      ],
+      "energizers": [
+        "deep work",
+        "feedback"
+      ],
+      "resilience": 51
+    },
+    "friction": {
+      "baseline": 24,
+      "tolerance": 51,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 84,
+      "drains": [
+        "repetitive maintenance",
+        "shallow work"
+      ],
+      "energizers": [
+        "deep work",
+        "feedback"
+      ],
+      "focus": "becoming excellent at a craft",
+      "preferred": 75
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "becoming excellent at a craft",
+        "staff"
+      ],
+      "mission_hook": "becoming excellent at a craft"
+    },
+    "traits": {
+      "ambiguity_tolerance": 66,
+      "autonomy_need": 81,
+      "burnout_risk": 49,
+      "coachability": 63,
+      "collaboration": 69,
+      "crisis_response": "rises",
+      "integrity": 85,
+      "mentorship": 67,
+      "politics": "neutral",
+      "ramp_rate": 84,
+      "reliability": 86
+    }
+  },
+  "id": "violet",
+  "name": "Violet Romero",
+  "role": "Senior Backend Engineer",
+  "salary_cents": 16000000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 74,
+    "backend": 88,
+    "infra": 63,
+    "product": 55,
+    "quality": 83
+  },
+  "visible": {
+    "ambition": "staff",
+    "interview": "sharp, concise, test-first",
+    "motivation": "mastery",
+    "seniority": "senior"
+  }
+}

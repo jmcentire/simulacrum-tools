@@ -1,0 +1,102 @@
+{
+  "backfill_fund_cents": 2682000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 69,
+      "outsources": [
+        "architecture decisions",
+        "priority tradeoffs"
+      ],
+      "owns": [
+        "well-bounded implementation"
+      ],
+      "preferred": 69
+    },
+    "communication_style": "balanced, thoughtful, low drama",
+    "compatibility_tags": [
+      "mentor"
+    ],
+    "energy": {
+      "baseline": 65,
+      "drains": [
+        "silos",
+        "credit hoarding"
+      ],
+      "energizers": [
+        "pairing",
+        "teaching",
+        "shared wins"
+      ],
+      "resilience": 54
+    },
+    "friction": {
+      "baseline": 23,
+      "tolerance": 54,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 80,
+      "drains": [
+        "silos",
+        "credit hoarding"
+      ],
+      "energizers": [
+        "pairing",
+        "teaching",
+        "shared wins"
+      ],
+      "focus": "making the whole group stronger",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "making the whole group stronger",
+        "staff"
+      ],
+      "mission_hook": "making the whole group stronger"
+    },
+    "traits": {
+      "ambiguity_tolerance": 79,
+      "autonomy_need": 69,
+      "burnout_risk": 46,
+      "coachability": 88,
+      "collaboration": 91,
+      "crisis_response": "steady",
+      "integrity": 92,
+      "mentorship": 84,
+      "politics": "coalition",
+      "ramp_rate": 80,
+      "reliability": 83
+    }
+  },
+  "id": "faye",
+  "name": "Faye Laurent",
+  "role": "Senior Engineer",
+  "salary_cents": 14900000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 62,
+    "backend": 77,
+    "frontend": 72,
+    "product": 70,
+    "quality": 75
+  },
+  "visible": {
+    "ambition": "staff",
+    "interview": "balanced, thoughtful, low drama",
+    "motivation": "team",
+    "seniority": "senior"
+  }
+}

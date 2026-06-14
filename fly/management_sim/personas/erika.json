@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 2628000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 78,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 78
+    },
+    "communication_style": "articulate, executive-friendly, crisp priorities",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 60,
+      "drains": [
+        "busywork",
+        "status theater"
+      ],
+      "energizers": [
+        "customer feedback",
+        "visible product effect"
+      ],
+      "resilience": 43
+    },
+    "friction": {
+      "baseline": 28,
+      "tolerance": 43,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 74,
+      "drains": [
+        "busywork",
+        "status theater"
+      ],
+      "energizers": [
+        "customer feedback",
+        "visible product effect"
+      ],
+      "focus": "building things customers actually use",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "building things customers actually use",
+        "director track"
+      ],
+      "mission_hook": "building things customers actually use"
+    },
+    "traits": {
+      "ambiguity_tolerance": 89,
+      "autonomy_need": 78,
+      "burnout_risk": 57,
+      "coachability": 70,
+      "collaboration": 91,
+      "crisis_response": "triages",
+      "integrity": 81,
+      "mentorship": 68,
+      "politics": "coalition",
+      "ramp_rate": 74,
+      "reliability": 77
+    }
+  },
+  "id": "erika",
+  "name": "Erika Cole",
+  "role": "Product Manager",
+  "salary_cents": 14600000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 48,
+    "communication": 94,
+    "frontend": 45,
+    "product": 91,
+    "quality": 61
+  },
+  "visible": {
+    "ambition": "director track",
+    "interview": "articulate, executive-friendly, crisp priorities",
+    "motivation": "impact",
+    "seniority": "senior"
+  }
+}

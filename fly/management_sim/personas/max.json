@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 3420000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 96,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 96
+    },
+    "communication_style": "blunt, deep systems knowledge",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 66,
+      "drains": [
+        "process theater",
+        "micromanagement"
+      ],
+      "energizers": [
+        "deep ownership",
+        "hard constraints"
+      ],
+      "resilience": 56
+    },
+    "friction": {
+      "baseline": 22,
+      "tolerance": 56,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "status-sensitive"
+    ],
+    "mastery": {
+      "baseline": 89,
+      "drains": [
+        "process theater",
+        "micromanagement"
+      ],
+      "energizers": [
+        "deep ownership",
+        "hard constraints"
+      ],
+      "focus": "solving hard systems problems",
+      "preferred": 75
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "solving hard systems problems",
+        "principal"
+      ],
+      "mission_hook": "solving hard systems problems"
+    },
+    "traits": {
+      "ambiguity_tolerance": 69,
+      "autonomy_need": 96,
+      "burnout_risk": 44,
+      "coachability": 46,
+      "collaboration": 47,
+      "crisis_response": "rises",
+      "integrity": 84,
+      "mentorship": 59,
+      "politics": "status",
+      "ramp_rate": 89,
+      "reliability": 88
+    }
+  },
+  "id": "max",
+  "name": "Max Ibrahim",
+  "role": "Staff Infrastructure Engineer",
+  "salary_cents": 19000000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 91,
+    "backend": 74,
+    "infra": 96,
+    "product": 39,
+    "quality": 85
+  },
+  "visible": {
+    "ambition": "principal",
+    "interview": "blunt, deep systems knowledge",
+    "motivation": "technical autonomy",
+    "seniority": "staff"
+  }
+}

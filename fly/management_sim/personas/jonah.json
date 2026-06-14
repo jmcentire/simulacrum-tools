@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 2772000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 73,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 73
+    },
+    "communication_style": "energetic, customer-heavy stories",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 58,
+      "drains": [
+        "being a ticket taker",
+        "constant re-prioritization"
+      ],
+      "energizers": [
+        "clear ownership",
+        "end-to-end responsibility"
+      ],
+      "resilience": 39
+    },
+    "friction": {
+      "baseline": 30,
+      "tolerance": 39,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 79,
+      "drains": [
+        "being a ticket taker",
+        "constant re-prioritization"
+      ],
+      "energizers": [
+        "clear ownership",
+        "end-to-end responsibility"
+      ],
+      "focus": "owning a coherent product area",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "owning a coherent product area",
+        "lead a product area"
+      ],
+      "mission_hook": "owning a coherent product area"
+    },
+    "traits": {
+      "ambiguity_tolerance": 91,
+      "autonomy_need": 73,
+      "burnout_risk": 61,
+      "coachability": 82,
+      "collaboration": 88,
+      "crisis_response": "improvise",
+      "integrity": 80,
+      "mentorship": 58,
+      "politics": "coalition",
+      "ramp_rate": 79,
+      "reliability": 69
+    }
+  },
+  "id": "jonah",
+  "name": "Jonah Ruiz",
+  "role": "Senior Product Engineer",
+  "salary_cents": 15400000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 66,
+    "backend": 74,
+    "frontend": 82,
+    "product": 88,
+    "quality": 70
+  },
+  "visible": {
+    "ambition": "lead a product area",
+    "interview": "energetic, customer-heavy stories",
+    "motivation": "ownership",
+    "seniority": "senior"
+  }
+}

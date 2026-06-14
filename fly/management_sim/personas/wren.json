@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 2556000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 78,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 78
+    },
+    "communication_style": "user-centered, strong narrative",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 60,
+      "drains": [
+        "busywork",
+        "status theater"
+      ],
+      "energizers": [
+        "customer feedback",
+        "visible product effect"
+      ],
+      "resilience": 43
+    },
+    "friction": {
+      "baseline": 28,
+      "tolerance": 43,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 73,
+      "drains": [
+        "busywork",
+        "status theater"
+      ],
+      "energizers": [
+        "customer feedback",
+        "visible product effect"
+      ],
+      "focus": "building things customers actually use",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "building things customers actually use",
+        "design lead"
+      ],
+      "mission_hook": "building things customers actually use"
+    },
+    "traits": {
+      "ambiguity_tolerance": 88,
+      "autonomy_need": 78,
+      "burnout_risk": 57,
+      "coachability": 82,
+      "collaboration": 89,
+      "crisis_response": "triages",
+      "integrity": 86,
+      "mentorship": 62,
+      "politics": "coalition",
+      "ramp_rate": 73,
+      "reliability": 76
+    }
+  },
+  "id": "wren",
+  "name": "Wren Liu",
+  "role": "Senior Product Designer",
+  "salary_cents": 14200000,
+  "schema_version": 1,
+  "skills": {
+    "communication": 78,
+    "design": 93,
+    "frontend": 56,
+    "product": 84,
+    "quality": 68
+  },
+  "visible": {
+    "ambition": "design lead",
+    "interview": "user-centered, strong narrative",
+    "motivation": "impact",
+    "seniority": "senior"
+  }
+}

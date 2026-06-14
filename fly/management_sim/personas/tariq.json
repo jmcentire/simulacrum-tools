@@ -1,0 +1,100 @@
+{
+  "backfill_fund_cents": 2124000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 58,
+      "outsources": [
+        "architecture decisions",
+        "priority tradeoffs"
+      ],
+      "owns": [
+        "well-bounded implementation"
+      ],
+      "preferred": 58
+    },
+    "communication_style": "enthusiastic, strong visual eye",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 55,
+      "drains": [
+        "rushed hacks",
+        "inconsistent standards"
+      ],
+      "energizers": [
+        "design quality",
+        "time to refine"
+      ],
+      "resilience": 33
+    },
+    "friction": {
+      "baseline": 33,
+      "tolerance": 33,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 86,
+      "drains": [
+        "rushed hacks",
+        "inconsistent standards"
+      ],
+      "energizers": [
+        "design quality",
+        "time to refine"
+      ],
+      "focus": "making the product feel deliberate",
+      "preferred": 75
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "making the product feel deliberate",
+        "senior IC"
+      ],
+      "mission_hook": "making the product feel deliberate"
+    },
+    "traits": {
+      "ambiguity_tolerance": 74,
+      "autonomy_need": 58,
+      "burnout_risk": 67,
+      "coachability": 95,
+      "collaboration": 85,
+      "crisis_response": "panics",
+      "integrity": 78,
+      "mentorship": 36,
+      "politics": "neutral",
+      "ramp_rate": 86,
+      "reliability": 71
+    }
+  },
+  "id": "tariq",
+  "name": "Tariq Ali",
+  "role": "Mid-Level Frontend Engineer",
+  "salary_cents": 11800000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 44,
+    "backend": 39,
+    "frontend": 78,
+    "product": 67,
+    "quality": 65
+  },
+  "visible": {
+    "ambition": "senior IC",
+    "interview": "enthusiastic, strong visual eye",
+    "motivation": "craft",
+    "seniority": "mid"
+  }
+}

@@ -9,7 +9,7 @@ A cognitive simulacrum of [Jeremy McEntire](https://perardua.dev) — an AI agen
 
 ## What this repo contains
 
-- **`fly/`** — a deployable FastAPI service. Run it on Fly.io (or anywhere that runs Python) and chat with the simulacrum through a web UI. Open access with cookie-based rate limiting, optional Cloudflare Turnstile invisible bot-check, light/dark theme, review vs teach mode, professional vs sailor register toggle, two-phase classifier dispatch.
+- **`fly/`** — a deployable FastAPI service. Run it on Fly.io (or anywhere that runs Python) and chat with the simulacrum through a web UI. Invite-code signup plus magic-link sessions, cookie-based rate limiting, optional Cloudflare Turnstile invisible bot-check, light/dark theme, review vs teach mode, professional vs sailor register toggle, two-phase classifier dispatch, and an authenticated management simulator.
 - **`skill/`** — a local CLI wrapper (`run.py`) that wraps the same logic for command-line / pipe-into / agent-tool use. Designed to drop into [Claude Code skills](https://docs.claude.com/en/docs/claude-code/skills).
 - **`skills/get-advice/`** — a Claude Code plugin skill that packages the specialist-mode Jeremy prompt directly, so Claude can invoke `/simulacrum:get-advice` without the local CLI wrapper.
 - **`PRIMER.md`** — recipe for building a simulacrum like this for a different subject. Worked-through advice from 8 architectural iterations, including what works (annotated few-shot, two-phase dispatch) and what doesn't (graph retrieval, multi-substrate ensembles, behavior dispatchers).
@@ -27,9 +27,10 @@ The system prompt also carries two load-bearing meta-rules: **assumption-interro
 
 The specialist alone (no fine-tune) handles the bulk of useful conversations. The generalist branch is purely a recall accelerator for autobiographical questions.
 
-## Anti-abuse posture
+## Access and anti-abuse posture
 
-The deployment is open (no login). Defenses are layered:
+The deployment is invite-only. Users sign up with a one-time code, then verify
+every browser session with a magic link. Defenses are layered:
 
 1. **Cookie-based 20-message rolling 24h cap** — HMAC-signed cookie carries timestamps; server reads/updates per request; no server-side state. Cleared cookies just bump the user to the next layer.
 2. **Cloudflare Turnstile (invisible)** — server-side token verification on every `/chat` call. Activated by setting `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET` env vars; skipped silently if unset (local dev).
@@ -72,7 +73,8 @@ fly secrets set GENERALIST_MODEL=ft:gpt-4o-mini-...
 fly deploy
 ```
 
-Visit `https://<your-app>.fly.dev/`, chat. Per-browser cap is 20 messages per rolling 24 hours.
+Visit `https://<your-app>.fly.dev/`, sign in, then use chat or the management
+simulator. Per-browser cap is 20 messages per rolling 24 hours.
 
 ## Customizing for a different subject
 

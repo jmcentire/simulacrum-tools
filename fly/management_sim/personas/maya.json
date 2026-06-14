@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 3204000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 84,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 84
+    },
+    "communication_style": "calm, precise, asks about failure modes",
+    "compatibility_tags": [
+      "mentor"
+    ],
+    "energy": {
+      "baseline": 67,
+      "drains": [
+        "busywork",
+        "status theater"
+      ],
+      "energizers": [
+        "customer feedback",
+        "visible product effect"
+      ],
+      "resilience": 58
+    },
+    "friction": {
+      "baseline": 21,
+      "tolerance": 58,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 88,
+      "drains": [
+        "busywork",
+        "status theater"
+      ],
+      "energizers": [
+        "customer feedback",
+        "visible product effect"
+      ],
+      "focus": "building things customers actually use",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "building things customers actually use",
+        "build durable systems"
+      ],
+      "mission_hook": "building things customers actually use"
+    },
+    "traits": {
+      "ambiguity_tolerance": 72,
+      "autonomy_need": 84,
+      "burnout_risk": 42,
+      "coachability": 68,
+      "collaboration": 76,
+      "crisis_response": "rises",
+      "integrity": 93,
+      "mentorship": 86,
+      "politics": "neutral",
+      "ramp_rate": 88,
+      "reliability": 91
+    }
+  },
+  "id": "maya",
+  "name": "Maya Patel",
+  "role": "Staff Backend Engineer",
+  "salary_cents": 17800000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 88,
+    "backend": 92,
+    "infra": 76,
+    "product": 58,
+    "quality": 82
+  },
+  "visible": {
+    "ambition": "build durable systems",
+    "interview": "calm, precise, asks about failure modes",
+    "motivation": "impact",
+    "seniority": "staff"
+  }
+}

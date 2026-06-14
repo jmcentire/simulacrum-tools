@@ -1,0 +1,100 @@
+{
+  "backfill_fund_cents": 2916000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 63,
+      "outsources": [
+        "architecture decisions",
+        "priority tradeoffs"
+      ],
+      "owns": [
+        "well-bounded implementation"
+      ],
+      "preferred": 63
+    },
+    "communication_style": "quiet, exacting, incident-driven",
+    "compatibility_tags": [
+      "mentor"
+    ],
+    "energy": {
+      "baseline": 71,
+      "drains": [
+        "avoidable chaos",
+        "heroics as a plan"
+      ],
+      "energizers": [
+        "reducing incidents",
+        "clean runbooks"
+      ],
+      "resilience": 65
+    },
+    "friction": {
+      "baseline": 18,
+      "tolerance": 65,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 76,
+      "drains": [
+        "avoidable chaos",
+        "heroics as a plan"
+      ],
+      "energizers": [
+        "reducing incidents",
+        "clean runbooks"
+      ],
+      "focus": "making systems dependable",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "making systems dependable",
+        "own reliability"
+      ],
+      "mission_hook": "making systems dependable"
+    },
+    "traits": {
+      "ambiguity_tolerance": 48,
+      "autonomy_need": 63,
+      "burnout_risk": 35,
+      "coachability": 74,
+      "collaboration": 64,
+      "crisis_response": "rises",
+      "integrity": 95,
+      "mentorship": 79,
+      "politics": "neutral",
+      "ramp_rate": 76,
+      "reliability": 94
+    }
+  },
+  "id": "elena",
+  "name": "Elena Park",
+  "role": "Senior Infrastructure Engineer",
+  "salary_cents": 16200000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 84,
+    "backend": 68,
+    "infra": 94,
+    "product": 44,
+    "quality": 90
+  },
+  "visible": {
+    "ambition": "own reliability",
+    "interview": "quiet, exacting, incident-driven",
+    "motivation": "stability",
+    "seniority": "senior"
+  }
+}

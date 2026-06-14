@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 2664000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 91,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 91
+    },
+    "communication_style": "charismatic, polished portfolio",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 59,
+      "drains": [
+        "rushed hacks",
+        "inconsistent standards"
+      ],
+      "energizers": [
+        "design quality",
+        "time to refine"
+      ],
+      "resilience": 42
+    },
+    "friction": {
+      "baseline": 29,
+      "tolerance": 42,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "status-sensitive"
+    ],
+    "mastery": {
+      "baseline": 72,
+      "drains": [
+        "rushed hacks",
+        "inconsistent standards"
+      ],
+      "energizers": [
+        "design quality",
+        "time to refine"
+      ],
+      "focus": "making the product feel deliberate",
+      "preferred": 75
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "making the product feel deliberate",
+        "design system ownership"
+      ],
+      "mission_hook": "making the product feel deliberate"
+    },
+    "traits": {
+      "ambiguity_tolerance": 63,
+      "autonomy_need": 91,
+      "burnout_risk": 58,
+      "coachability": 54,
+      "collaboration": 71,
+      "crisis_response": "deflects",
+      "integrity": 70,
+      "mentorship": 65,
+      "politics": "status",
+      "ramp_rate": 72,
+      "reliability": 68
+    }
+  },
+  "id": "trent",
+  "name": "Trent Wallace",
+  "role": "Senior Frontend Engineer",
+  "salary_cents": 14800000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 61,
+    "backend": 42,
+    "frontend": 93,
+    "product": 76,
+    "quality": 72
+  },
+  "visible": {
+    "ambition": "design system ownership",
+    "interview": "charismatic, polished portfolio",
+    "motivation": "craft",
+    "seniority": "senior"
+  }
+}

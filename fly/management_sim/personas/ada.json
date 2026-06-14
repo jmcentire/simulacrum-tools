@@ -1,0 +1,100 @@
+{
+  "backfill_fund_cents": 2376000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 63,
+      "outsources": [
+        "architecture decisions",
+        "priority tradeoffs"
+      ],
+      "owns": [
+        "well-bounded implementation"
+      ],
+      "preferred": 63
+    },
+    "communication_style": "dry humor, deep testing stories",
+    "compatibility_tags": [
+      "mentor"
+    ],
+    "energy": {
+      "baseline": 66,
+      "drains": [
+        "shipping known defects",
+        "vague acceptance criteria"
+      ],
+      "energizers": [
+        "test depth",
+        "clear failure modes"
+      ],
+      "resilience": 56
+    },
+    "friction": {
+      "baseline": 22,
+      "tolerance": 56,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 78,
+      "drains": [
+        "shipping known defects",
+        "vague acceptance criteria"
+      ],
+      "energizers": [
+        "test depth",
+        "clear failure modes"
+      ],
+      "focus": "finding the thing everyone else missed",
+      "preferred": 75
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "finding the thing everyone else missed",
+        "quality architecture"
+      ],
+      "mission_hook": "finding the thing everyone else missed"
+    },
+    "traits": {
+      "ambiguity_tolerance": 62,
+      "autonomy_need": 63,
+      "burnout_risk": 44,
+      "coachability": 85,
+      "collaboration": 79,
+      "crisis_response": "steady",
+      "integrity": 88,
+      "mentorship": 76,
+      "politics": "neutral",
+      "ramp_rate": 78,
+      "reliability": 87
+    }
+  },
+  "id": "ada",
+  "name": "Ada Brooks",
+  "role": "Senior QA Engineer",
+  "salary_cents": 13200000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 48,
+    "backend": 52,
+    "frontend": 55,
+    "product": 68,
+    "quality": 89
+  },
+  "visible": {
+    "ambition": "quality architecture",
+    "interview": "dry humor, deep testing stories",
+    "motivation": "correctness",
+    "seniority": "senior"
+  }
+}

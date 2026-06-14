@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 2736000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 76,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 76
+    },
+    "communication_style": "solid, reserved, systems focus",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 66,
+      "drains": [
+        "avoidable chaos",
+        "heroics as a plan"
+      ],
+      "energizers": [
+        "reducing incidents",
+        "clean runbooks"
+      ],
+      "resilience": 55
+    },
+    "friction": {
+      "baseline": 22,
+      "tolerance": 55,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 67,
+      "drains": [
+        "avoidable chaos",
+        "heroics as a plan"
+      ],
+      "energizers": [
+        "reducing incidents",
+        "clean runbooks"
+      ],
+      "focus": "making systems dependable",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "making systems dependable",
+        "staff"
+      ],
+      "mission_hook": "making systems dependable"
+    },
+    "traits": {
+      "ambiguity_tolerance": 54,
+      "autonomy_need": 76,
+      "burnout_risk": 45,
+      "coachability": 71,
+      "collaboration": 66,
+      "crisis_response": "steady",
+      "integrity": 90,
+      "mentorship": 61,
+      "politics": "neutral",
+      "ramp_rate": 67,
+      "reliability": 84
+    }
+  },
+  "id": "ben",
+  "name": "Ben Okoye",
+  "role": "Senior Backend Engineer",
+  "salary_cents": 15200000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 69,
+    "backend": 82,
+    "infra": 64,
+    "product": 52,
+    "quality": 71
+  },
+  "visible": {
+    "ambition": "staff",
+    "interview": "solid, reserved, systems focus",
+    "motivation": "stability",
+    "seniority": "senior"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 2484000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 75,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 75
+    },
+    "communication_style": "empathetic, strong user narratives",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 59,
+      "drains": [
+        "busywork",
+        "status theater"
+      ],
+      "energizers": [
+        "customer feedback",
+        "visible product effect"
+      ],
+      "resilience": 41
+    },
+    "friction": {
+      "baseline": 29,
+      "tolerance": 41,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 69,
+      "drains": [
+        "busywork",
+        "status theater"
+      ],
+      "energizers": [
+        "customer feedback",
+        "visible product effect"
+      ],
+      "focus": "building things customers actually use",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "building things customers actually use",
+        "design systems"
+      ],
+      "mission_hook": "building things customers actually use"
+    },
+    "traits": {
+      "ambiguity_tolerance": 86,
+      "autonomy_need": 75,
+      "burnout_risk": 59,
+      "coachability": 84,
+      "collaboration": 90,
+      "crisis_response": "triages",
+      "integrity": 88,
+      "mentorship": 71,
+      "politics": "coalition",
+      "ramp_rate": 69,
+      "reliability": 74
+    }
+  },
+  "id": "jules",
+  "name": "Jules Martin",
+  "role": "Senior Designer",
+  "salary_cents": 13800000,
+  "schema_version": 1,
+  "skills": {
+    "communication": 84,
+    "design": 90,
+    "frontend": 50,
+    "product": 77,
+    "quality": 67
+  },
+  "visible": {
+    "ambition": "design systems",
+    "interview": "empathetic, strong user narratives",
+    "motivation": "impact",
+    "seniority": "senior"
+  }
+}

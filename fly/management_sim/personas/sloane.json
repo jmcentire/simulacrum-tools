@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 3168000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 79,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 79
+    },
+    "communication_style": "skeptical, threat-model oriented",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 70,
+      "drains": [
+        "ignored warnings",
+        "deadline theater"
+      ],
+      "energizers": [
+        "threat models",
+        "hardening"
+      ],
+      "resilience": 64
+    },
+    "friction": {
+      "baseline": 18,
+      "tolerance": 64,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 68,
+      "drains": [
+        "ignored warnings",
+        "deadline theater"
+      ],
+      "energizers": [
+        "threat models",
+        "hardening"
+      ],
+      "focus": "preventing the expensive failure",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "preventing the expensive failure",
+        "security lead"
+      ],
+      "mission_hook": "preventing the expensive failure"
+    },
+    "traits": {
+      "ambiguity_tolerance": 51,
+      "autonomy_need": 79,
+      "burnout_risk": 36,
+      "coachability": 72,
+      "collaboration": 60,
+      "crisis_response": "rises",
+      "integrity": 96,
+      "mentorship": 70,
+      "politics": "neutral",
+      "ramp_rate": 68,
+      "reliability": 90
+    }
+  },
+  "id": "sloane",
+  "name": "Sloane Kim",
+  "role": "Senior Security Engineer",
+  "salary_cents": 17600000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 81,
+    "backend": 62,
+    "infra": 77,
+    "quality": 88,
+    "security": 94
+  },
+  "visible": {
+    "ambition": "security lead",
+    "interview": "skeptical, threat-model oriented",
+    "motivation": "risk reduction",
+    "seniority": "senior"
+  }
+}

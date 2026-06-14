@@ -1,0 +1,100 @@
+{
+  "backfill_fund_cents": 1656000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 29,
+      "outsources": [
+        "architecture decisions",
+        "priority tradeoffs"
+      ],
+      "owns": [
+        "well-bounded implementation"
+      ],
+      "preferred": 29
+    },
+    "communication_style": "bright, eager, learns quickly",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 51,
+      "drains": [
+        "being underused",
+        "opaque feedback"
+      ],
+      "energizers": [
+        "mentorship",
+        "stretch problems"
+      ],
+      "resilience": 26
+    },
+    "friction": {
+      "baseline": 37,
+      "tolerance": 26,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 91,
+      "drains": [
+        "being underused",
+        "opaque feedback"
+      ],
+      "energizers": [
+        "mentorship",
+        "stretch problems"
+      ],
+      "focus": "getting better through hard work",
+      "preferred": 75
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "getting better through hard work",
+        "be useful"
+      ],
+      "mission_hook": "getting better through hard work"
+    },
+    "traits": {
+      "ambiguity_tolerance": 44,
+      "autonomy_need": 29,
+      "burnout_risk": 74,
+      "coachability": 98,
+      "collaboration": 88,
+      "crisis_response": "freezes",
+      "integrity": 91,
+      "mentorship": 18,
+      "politics": "neutral",
+      "ramp_rate": 91,
+      "reliability": 65
+    }
+  },
+  "id": "zoe",
+  "name": "Zoe Hart",
+  "role": "Junior Product Engineer",
+  "salary_cents": 9200000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 33,
+    "backend": 52,
+    "frontend": 59,
+    "product": 61,
+    "quality": 54
+  },
+  "visible": {
+    "ambition": "be useful",
+    "interview": "bright, eager, learns quickly",
+    "motivation": "growth",
+    "seniority": "junior"
+  }
+}

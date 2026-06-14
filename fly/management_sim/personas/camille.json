@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 3312000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 86,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 86
+    },
+    "communication_style": "thoughtful, frames tradeoffs clearly",
+    "compatibility_tags": [
+      "mentor"
+    ],
+    "energy": {
+      "baseline": 64,
+      "drains": [
+        "busywork",
+        "status theater"
+      ],
+      "energizers": [
+        "customer feedback",
+        "visible product effect"
+      ],
+      "resilience": 52
+    },
+    "friction": {
+      "baseline": 24,
+      "tolerance": 52,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 90,
+      "drains": [
+        "busywork",
+        "status theater"
+      ],
+      "energizers": [
+        "customer feedback",
+        "visible product effect"
+      ],
+      "focus": "building things customers actually use",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "building things customers actually use",
+        "shape strategy"
+      ],
+      "mission_hook": "building things customers actually use"
+    },
+    "traits": {
+      "ambiguity_tolerance": 93,
+      "autonomy_need": 86,
+      "burnout_risk": 48,
+      "coachability": 77,
+      "collaboration": 90,
+      "crisis_response": "rises",
+      "integrity": 88,
+      "mentorship": 91,
+      "politics": "coalition",
+      "ramp_rate": 90,
+      "reliability": 84
+    }
+  },
+  "id": "camille",
+  "name": "Camille Bertrand",
+  "role": "Staff Product Engineer",
+  "salary_cents": 18400000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 78,
+    "backend": 79,
+    "frontend": 80,
+    "product": 94,
+    "quality": 78
+  },
+  "visible": {
+    "ambition": "shape strategy",
+    "interview": "thoughtful, frames tradeoffs clearly",
+    "motivation": "impact",
+    "seniority": "staff"
+  }
+}

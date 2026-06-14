@@ -24,6 +24,7 @@ Thumbs.db
 .env.local
 *.secret
 fly.toml.local
+signup_codes.txt
 
 # Fly state
 .fly/

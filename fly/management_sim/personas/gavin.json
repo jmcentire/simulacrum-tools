@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 3384000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 90,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 90
+    },
+    "communication_style": "intense, adversarial, thorough",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 69,
+      "drains": [
+        "ignored warnings",
+        "deadline theater"
+      ],
+      "energizers": [
+        "threat models",
+        "hardening"
+      ],
+      "resilience": 62
+    },
+    "friction": {
+      "baseline": 19,
+      "tolerance": 62,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "status-sensitive"
+    ],
+    "mastery": {
+      "baseline": 81,
+      "drains": [
+        "ignored warnings",
+        "deadline theater"
+      ],
+      "energizers": [
+        "threat models",
+        "hardening"
+      ],
+      "focus": "preventing the expensive failure",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "preventing the expensive failure",
+        "principal"
+      ],
+      "mission_hook": "preventing the expensive failure"
+    },
+    "traits": {
+      "ambiguity_tolerance": 55,
+      "autonomy_need": 90,
+      "burnout_risk": 38,
+      "coachability": 48,
+      "collaboration": 49,
+      "crisis_response": "rises",
+      "integrity": 94,
+      "mentorship": 66,
+      "politics": "status",
+      "ramp_rate": 81,
+      "reliability": 89
+    }
+  },
+  "id": "gavin",
+  "name": "Gavin Price",
+  "role": "Staff Security Engineer",
+  "salary_cents": 18800000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 83,
+    "backend": 59,
+    "infra": 78,
+    "quality": 87,
+    "security": 96
+  },
+  "visible": {
+    "ambition": "principal",
+    "interview": "intense, adversarial, thorough",
+    "motivation": "risk reduction",
+    "seniority": "staff"
+  }
+}

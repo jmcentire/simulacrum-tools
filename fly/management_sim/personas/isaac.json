@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 2808000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 82,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 82
+    },
+    "communication_style": "pragmatic, ships often",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 58,
+      "drains": [
+        "being a ticket taker",
+        "constant re-prioritization"
+      ],
+      "energizers": [
+        "clear ownership",
+        "end-to-end responsibility"
+      ],
+      "resilience": 40
+    },
+    "friction": {
+      "baseline": 30,
+      "tolerance": 40,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 74,
+      "drains": [
+        "being a ticket taker",
+        "constant re-prioritization"
+      ],
+      "energizers": [
+        "clear ownership",
+        "end-to-end responsibility"
+      ],
+      "focus": "owning a coherent product area",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "owning a coherent product area",
+        "lead a team"
+      ],
+      "mission_hook": "owning a coherent product area"
+    },
+    "traits": {
+      "ambiguity_tolerance": 80,
+      "autonomy_need": 82,
+      "burnout_risk": 60,
+      "coachability": 67,
+      "collaboration": 77,
+      "crisis_response": "improvise",
+      "integrity": 79,
+      "mentorship": 70,
+      "politics": "coalition",
+      "ramp_rate": 74,
+      "reliability": 75
+    }
+  },
+  "id": "isaac",
+  "name": "Isaac Bell",
+  "role": "Senior Engineer",
+  "salary_cents": 15600000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 74,
+    "backend": 79,
+    "frontend": 66,
+    "infra": 61,
+    "quality": 77
+  },
+  "visible": {
+    "ambition": "lead a team",
+    "interview": "pragmatic, ships often",
+    "motivation": "ownership",
+    "seniority": "senior"
+  }
+}

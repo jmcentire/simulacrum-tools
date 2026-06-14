@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 2844000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 72,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 72
+    },
+    "communication_style": "practical, measures everything",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 67,
+      "drains": [
+        "moving targets",
+        "unowned assumptions"
+      ],
+      "energizers": [
+        "measurable outcomes",
+        "clear decisions"
+      ],
+      "resilience": 57
+    },
+    "friction": {
+      "baseline": 21,
+      "tolerance": 57,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 75,
+      "drains": [
+        "moving targets",
+        "unowned assumptions"
+      ],
+      "energizers": [
+        "measurable outcomes",
+        "clear decisions"
+      ],
+      "focus": "turning ambiguity into useful models",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "turning ambiguity into useful models",
+        "platform ownership"
+      ],
+      "mission_hook": "turning ambiguity into useful models"
+    },
+    "traits": {
+      "ambiguity_tolerance": 64,
+      "autonomy_need": 72,
+      "burnout_risk": 43,
+      "coachability": 81,
+      "collaboration": 74,
+      "crisis_response": "steady",
+      "integrity": 92,
+      "mentorship": 72,
+      "politics": "neutral",
+      "ramp_rate": 75,
+      "reliability": 88
+    }
+  },
+  "id": "nora",
+  "name": "Nora Singh",
+  "role": "Senior Data Engineer",
+  "salary_cents": 15800000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 72,
+    "backend": 63,
+    "data": 93,
+    "product": 58,
+    "quality": 82
+  },
+  "visible": {
+    "ambition": "platform ownership",
+    "interview": "practical, measures everything",
+    "motivation": "clarity",
+    "seniority": "senior"
+  }
+}

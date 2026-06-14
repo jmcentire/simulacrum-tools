@@ -54,6 +54,9 @@
     .segmented button + button { border-left: 1px solid var(--border-input); }
     .segmented button:hover { color: var(--text); }
     .segmented button.active { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+    .segmented .nav-link { color: var(--subtle); text-decoration: none; padding: 4px 8px; font-size: 12px; }
+    .segmented .nav-link + .nav-link { border-left: 1px solid var(--border-input); }
+    .segmented .nav-link:hover { color: var(--text); }
     #chat { flex: 1; overflow-y: auto; padding: 24px; max-width: 880px;
             margin: 0 auto; width: 100%; }
     .turn { margin-bottom: 24px; }
@@ -102,6 +105,10 @@
     <div class="segmented" aria-label="Theme">
       <button type="button" id="theme-light" data-theme="light">Light</button>
       <button type="button" id="theme-dark" data-theme="dark">Dark</button>
+    </div>
+    <div class="segmented" aria-label="Navigation">
+      <a class="nav-link" href="/simulator">Manager</a>
+      <a class="nav-link" href="/logout">Logout</a>
     </div>
   </header>
   <div id="chat">

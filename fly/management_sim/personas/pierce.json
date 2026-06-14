@@ -1,0 +1,100 @@
+{
+  "backfill_fund_cents": 2196000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 52,
+      "outsources": [
+        "architecture decisions",
+        "priority tradeoffs"
+      ],
+      "owns": [
+        "well-bounded implementation"
+      ],
+      "preferred": 52
+    },
+    "communication_style": "direct, fewer stories, solid fundamentals",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 62,
+      "drains": [
+        "being underused",
+        "opaque feedback"
+      ],
+      "energizers": [
+        "mentorship",
+        "stretch problems"
+      ],
+      "resilience": 48
+    },
+    "friction": {
+      "baseline": 26,
+      "tolerance": 48,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 83,
+      "drains": [
+        "being underused",
+        "opaque feedback"
+      ],
+      "energizers": [
+        "mentorship",
+        "stretch problems"
+      ],
+      "focus": "getting better through hard work",
+      "preferred": 75
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "getting better through hard work",
+        "become senior"
+      ],
+      "mission_hook": "getting better through hard work"
+    },
+    "traits": {
+      "ambiguity_tolerance": 59,
+      "autonomy_need": 52,
+      "burnout_risk": 52,
+      "coachability": 93,
+      "collaboration": 80,
+      "crisis_response": "steady",
+      "integrity": 87,
+      "mentorship": 42,
+      "politics": "neutral",
+      "ramp_rate": 83,
+      "reliability": 78
+    }
+  },
+  "id": "pierce",
+  "name": "Pierce Nguyen",
+  "role": "Mid-Level Backend Engineer",
+  "salary_cents": 12200000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 49,
+    "backend": 76,
+    "infra": 52,
+    "product": 55,
+    "quality": 66
+  },
+  "visible": {
+    "ambition": "become senior",
+    "interview": "direct, fewer stories, solid fundamentals",
+    "motivation": "growth",
+    "seniority": "mid"
+  }
+}

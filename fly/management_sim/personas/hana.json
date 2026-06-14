@@ -1,0 +1,100 @@
+{
+  "backfill_fund_cents": 1584000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 32,
+      "outsources": [
+        "architecture decisions",
+        "priority tradeoffs"
+      ],
+      "owns": [
+        "well-bounded implementation"
+      ],
+      "preferred": 32
+    },
+    "communication_style": "careful, asks good questions",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 54,
+      "drains": [
+        "being underused",
+        "opaque feedback"
+      ],
+      "energizers": [
+        "mentorship",
+        "stretch problems"
+      ],
+      "resilience": 31
+    },
+    "friction": {
+      "baseline": 34,
+      "tolerance": 31,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 87,
+      "drains": [
+        "being underused",
+        "opaque feedback"
+      ],
+      "energizers": [
+        "mentorship",
+        "stretch problems"
+      ],
+      "focus": "getting better through hard work",
+      "preferred": 75
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "getting better through hard work",
+        "test automation"
+      ],
+      "mission_hook": "getting better through hard work"
+    },
+    "traits": {
+      "ambiguity_tolerance": 47,
+      "autonomy_need": 32,
+      "burnout_risk": 69,
+      "coachability": 97,
+      "collaboration": 86,
+      "crisis_response": "freezes",
+      "integrity": 93,
+      "mentorship": 15,
+      "politics": "neutral",
+      "ramp_rate": 87,
+      "reliability": 72
+    }
+  },
+  "id": "hana",
+  "name": "Hana Wu",
+  "role": "Junior QA Engineer",
+  "salary_cents": 8800000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 28,
+    "backend": 35,
+    "frontend": 41,
+    "product": 58,
+    "quality": 62
+  },
+  "visible": {
+    "ambition": "test automation",
+    "interview": "careful, asks good questions",
+    "motivation": "growth",
+    "seniority": "junior"
+  }
+}

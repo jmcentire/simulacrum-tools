@@ -1,18 +1,27 @@
 # Simulacrum — Fly.io deployment
 
-FastAPI service exposing the simulacrum via a web UI. Two-phase classifier dispatch.
+FastAPI service exposing Simulacrum via a web UI plus an authenticated
+management simulation module.
 
 ## Setup
 
 ```bash
 fly launch --no-deploy --copy-config         # rename the app — pick something unique
 fly secrets set ANTHROPIC_API_KEY=sk-ant-...
-fly secrets set ALLOWED_USERNAME=your-username   # case-insensitive; whoever can log in
 fly secrets set SIMULACRUM_TOKEN=$(openssl rand -hex 32)   # session HMAC key
+fly secrets set RESEND_API_KEY=re_...
+fly secrets set RESEND_FROM="Simulacrum <onboarding@your-domain>"
+fly secrets set APP_BASE_URL=https://simulacrum.tools
+fly secrets set SIGNUP_CODES="CODE-ONE,CODE-TWO,CODE-THREE"
+fly secrets set SIMULACRUM_DB=/data/simulacrum.db
 
 # Optional — enables the generalist branch (better autobiographical recall):
 fly secrets set OPENAI_API_KEY=sk-proj-...
 fly secrets set GENERALIST_MODEL=ft:gpt-4o-mini-2024-07-18:personal:my-simulacrum:abc123
+
+# Create and mount persistent SQLite storage once:
+fly volumes create simulacrum_data --region iad --size 1
+fly volumes mount simulacrum_data /data
 
 fly deploy
 ```
@@ -23,12 +32,14 @@ Without `OPENAI_API_KEY` + `GENERALIST_MODEL`, the dispatcher routes everything 
 
 | Path | Method | Auth | Purpose |
 |---|---|---|---|
-| `/` | GET | cookie | UI |
-| `/login` | GET / POST | none | Login form / submission |
+| `/` | GET | session | Redirect to simulator |
+| `/sign-in` | GET / POST | none | Magic-link sign-in |
+| `/sign-up` | GET / POST | invite code | One-time-code signup |
 | `/logout` | GET | cookie | Clear session cookie |
 | `/chat` | POST | cookie | Send dialog, get response |
 | `/register` | POST | cookie | Set professional/sailor register cookie |
 | `/mode` | POST | cookie | Set review/teach chat mode |
+| `/api/management-sim/*` | GET / POST | session | Management simulator |
 | `/healthz` | GET | none | Health + config status |
 
 ## Register modes
@@ -72,6 +83,7 @@ fly/
 │   ├── specialist.py         # Anthropic + annotated few-shot + Mode-A
 │   ├── generalist.py         # OpenAI fine-tune (optional)
 │   └── teach.py              # observer -> planner -> draft -> audit loop
+├── management_sim/           # authenticated management simulation module
 ├── data/
 │   └── adversarial_pairs_annotated.json    # 11 canonical few-shot pairs
 └── static/

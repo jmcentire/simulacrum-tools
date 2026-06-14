@@ -8,11 +8,11 @@ The /chat endpoint dispatches each turn between two agents:
                for adversarial framings, content generation, suggestions,
                critique, multi-turn continuation
 
-Open access (no login). Anti-abuse layered:
-  1. Cookie-based rolling-24h message counter (HMAC-signed, no server state).
-  2. Cloudflare Turnstile token verification (when TURNSTILE_SECRET is set).
-  3. (Recommended) Cloudflare edge in front: proxied DNS, Bot Fight Mode, per-IP rate-limit rule.
-  4. (Recommended) Provider-side daily budget cap on API keys.
+Authenticated access:
+  1. Invite-code signup.
+  2. Magic-link sign-in for every browser session.
+  3. Persistent SQLite storage for users, memories, simulation runs, and events.
+  4. Cookie-based rolling-24h chat counter plus optional Turnstile.
 """
 
 from __future__ import annotations
@@ -27,13 +27,16 @@ from typing import Optional
 
 import httpx
 from fastapi import Cookie, FastAPI, Form, Header, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from agents.dispatcher import Dispatcher
 from agents.generalist import is_configured as generalist_configured
 from agents.teach import TeachAgent
+import auth
+import db
+from management_sim.router import router as management_sim_router
 
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
@@ -48,12 +51,14 @@ REGISTER_COOKIE = "simulacrum_register"
 MODE_COOKIE = "simulacrum_mode"
 WINDOW_SECONDS = 24 * 3600
 CAP_PER_WINDOW = int(os.environ.get("CAP_PER_WINDOW", "20"))
+COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "1") != "0"
 
 if not ANTHROPIC_API_KEY:
     raise RuntimeError("ANTHROPIC_API_KEY env var required (specialist + classifier)")
 
 dispatcher = Dispatcher()
 teach = TeachAgent()
+db.init_db()
 print(f"dispatcher loaded — generalist={'enabled' if generalist_configured() else 'disabled (specialist-only)'}")
 
 
@@ -110,6 +115,7 @@ async def _verify_turnstile(token: Optional[str], remote_ip: Optional[str]) -> b
 # ---- HTTP API ----
 
 app = FastAPI(title="Simulacrum", version="1.0")
+app.include_router(management_sim_router)
 
 
 class DialogTurn(BaseModel):
@@ -131,9 +137,154 @@ class ChatResponse(BaseModel):
     remaining: int
 
 
+def _current_user(session_token: Optional[str]) -> dict | None:
+    return auth.current_user(session_token)
+
+
+def _require_user(session_token: Optional[str]) -> dict:
+    user = _current_user(session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="sign in required")
+    return user
+
+
+def _auth_page(title: str, body: str, message: str = "") -> HTMLResponse:
+    return HTMLResponse(f"""
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>{title} — Simulacrum</title>
+        <style>
+          body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#1a1a1a; color:#e8e8e8; margin:0; }}
+          main {{ max-width:520px; margin:80px auto; padding:28px; }}
+          h1 {{ font-size:24px; font-weight:500; margin:0 0 8px; }}
+          p {{ color:#a1a1aa; line-height:1.5; }}
+          form {{ display:flex; flex-direction:column; gap:12px; margin-top:24px; }}
+          input {{ background:#222; color:#e8e8e8; border:1px solid #444; border-radius:4px; padding:10px 12px; font:inherit; }}
+          button {{ background:#ffb86c; color:#1a1a1a; border:0; border-radius:4px; padding:10px 12px; font:inherit; font-weight:700; cursor:pointer; }}
+          .message {{ color:#ffb86c; font-size:13px; margin-top:12px; }}
+          a {{ color:#6cb5ff; }}
+        </style>
+      </head>
+      <body><main><h1>{title}</h1>{body}<p class="message">{message}</p></main></body>
+    </html>
+    """)
+
+
 @app.get("/")
-async def index():
+async def index(simulacrum_session: Optional[str] = Cookie(None)):
+    if not _current_user(simulacrum_session):
+        return RedirectResponse("/sign-in")
+    return RedirectResponse("/simulator")
+
+
+@app.get("/chat-ui")
+async def chat_ui(simulacrum_session: Optional[str] = Cookie(None)):
+    if not _current_user(simulacrum_session):
+        return RedirectResponse("/sign-in")
     return FileResponse(STATIC / "index.html")
+
+
+@app.get("/simulator")
+async def simulator_ui(simulacrum_session: Optional[str] = Cookie(None)):
+    if not _current_user(simulacrum_session):
+        return RedirectResponse("/sign-in")
+    return FileResponse(STATIC / "simulator.html")
+
+
+@app.get("/sign-in")
+async def sign_in_page(simulacrum_session: Optional[str] = Cookie(None)):
+    if _current_user(simulacrum_session):
+        return RedirectResponse("/simulator")
+    return _auth_page(
+        "Sign in",
+        """
+        <p>Sign in with your email. Every browser session is verified by a magic link.</p>
+        <form method="post" action="/sign-in">
+          <input type="email" name="email" placeholder="you@example.com" required autofocus>
+          <button type="submit">Send magic link</button>
+        </form>
+        <p>Need access? <a href="/sign-up">Sign up with an invite code</a>.</p>
+        """,
+    )
+
+
+@app.post("/sign-in")
+async def sign_in(email: str = Form(...)):
+    try:
+        await auth.request_signin(email)
+        message = "If that email is registered, a magic link is on its way."
+    except Exception:
+        message = "We could not send the magic link. Try again in a moment."
+    return _auth_page(
+        "Check your email",
+        "<p>We sent a sign-in link if the address is registered.</p><p><a href=\"/sign-in\">Back to sign in</a></p>",
+        message,
+    )
+
+
+@app.get("/sign-up")
+async def sign_up_page(simulacrum_session: Optional[str] = Cookie(None)):
+    if _current_user(simulacrum_session):
+        return RedirectResponse("/simulator")
+    return _auth_page(
+        "Sign up",
+        """
+        <p>Access is invite-only. Enter your email and a one-time code.</p>
+        <form method="post" action="/sign-up">
+          <input type="email" name="email" placeholder="you@example.com" required autofocus>
+          <input type="text" name="code" placeholder="invite code" required>
+          <button type="submit">Send verification link</button>
+        </form>
+        <p>Already registered? <a href="/sign-in">Sign in</a>.</p>
+        """,
+    )
+
+
+@app.post("/sign-up")
+async def sign_up(email: str = Form(...), code: str = Form(...)):
+    try:
+        ok = await auth.request_signup(email, code)
+        message = "A verification link is on its way."
+        if not ok:
+            message = "That invite code is invalid, reserved, or already used."
+    except Exception:
+        message = "We could not send the verification link. Try again in a moment."
+    return _auth_page(
+        "Check your email",
+        "<p>Complete sign-up from the magic link in your inbox.</p><p><a href=\"/sign-up\">Back to sign up</a></p>",
+        message,
+    )
+
+
+@app.get("/auth/verify")
+async def verify_magic_link(token: str):
+    user, session_token = auth.redeem_magic_link(token)
+    if not user or not session_token:
+        return _auth_page(
+            "Link expired",
+            "<p>This link is invalid or expired.</p><p><a href=\"/sign-in\">Request a new link</a></p>",
+        )
+    response = RedirectResponse("/simulator")
+    response.set_cookie(
+        auth.SESSION_COOKIE,
+        session_token,
+        max_age=auth.session_cookie_max_age(),
+        httponly=True,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+    )
+    return response
+
+
+@app.get("/logout")
+async def logout(simulacrum_session: Optional[str] = Cookie(None)):
+    auth.revoke_session(simulacrum_session)
+    response = RedirectResponse("/sign-in")
+    response.delete_cookie(auth.SESSION_COOKIE)
+    return response
 
 
 @app.get("/privacy")
@@ -151,7 +302,9 @@ async def chat(req: ChatRequest,
                simulacrum_counter: Optional[str] = Cookie(None),
                simulacrum_register: Optional[str] = Cookie(None),
                simulacrum_mode: Optional[str] = Cookie(None),
+               simulacrum_session: Optional[str] = Cookie(None),
                cf_connecting_ip: Optional[str] = Header(None, alias="CF-Connecting-IP")) -> JSONResponse:
+    _require_user(simulacrum_session)
     if not req.dialog:
         raise HTTPException(status_code=400, detail="empty dialog")
 
@@ -189,17 +342,17 @@ async def chat(req: ChatRequest,
     ).model_dump())
     resp.set_cookie(
         COUNTER_COOKIE, _write_counter(timestamps),
-        max_age=WINDOW_SECONDS, httponly=True, samesite="lax", secure=True,
+        max_age=WINDOW_SECONDS, httponly=True, samesite="lax", secure=COOKIE_SECURE,
     )
     if invalid_register:
         resp.set_cookie(
             REGISTER_COOKIE, register_mode,
-            max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=True,
+            max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=COOKIE_SECURE,
         )
     if invalid_mode:
         resp.set_cookie(
             MODE_COOKIE, chat_mode,
-            max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=True,
+            max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=COOKIE_SECURE,
         )
     return resp
 
@@ -215,6 +368,8 @@ async def healthz():
         "ok": True,
         "specialist": "anthropic-fewshot",
         "teach": "anthropic-planner-loop",
+        "auth": "magic-link",
+        "simulation": "management",
         "generalist": "configured" if generalist_configured() else "disabled",
         "chat_modes": ["review", "teach"],
         "register_modes": ["professional", "sailor"],
@@ -225,28 +380,35 @@ def _set_register_response(register_mode: str) -> JSONResponse:
     resp = JSONResponse({"register": register_mode})
     resp.set_cookie(
         REGISTER_COOKIE, register_mode,
-        max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=True,
+        max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=COOKIE_SECURE,
     )
     return resp
 
 
 @app.post("/register")
-async def set_register(register_mode: str = Form(...)):
+async def set_register(register_mode: str = Form(...), simulacrum_session: Optional[str] = Cookie(None)):
+    _require_user(simulacrum_session)
     if register_mode not in ("professional", "sailor"):
         register_mode = "professional"
     return _set_register_response(register_mode)
 
 
 @app.post("/mode")
-async def set_mode(mode: str = Form(...)):
+async def set_mode(mode: str = Form(...), simulacrum_session: Optional[str] = Cookie(None)):
+    _require_user(simulacrum_session)
     if mode not in ("review", "teach"):
         mode = "review"
     resp = JSONResponse({"mode": mode})
     resp.set_cookie(
         MODE_COOKIE, mode,
-        max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=True,
+        max_age=365 * 24 * 3600, httponly=False, samesite="lax", secure=COOKIE_SECURE,
     )
     return resp
+
+
+@app.get("/api/me")
+async def me(simulacrum_session: Optional[str] = Cookie(None)):
+    return {"user": _require_user(simulacrum_session)}
 
 
 app.mount("/static", StaticFiles(directory=STATIC), name="static")

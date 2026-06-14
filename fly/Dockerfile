@@ -10,7 +10,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
+COPY auth.py .
+COPY db.py .
 COPY agents/ ./agents/
+COPY management_sim/ ./management_sim/
 COPY data/ ./data/
 COPY static/ ./static/
 

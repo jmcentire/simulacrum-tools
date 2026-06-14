@@ -1,0 +1,100 @@
+{
+  "backfill_fund_cents": 2826000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 65,
+      "outsources": [
+        "architecture decisions",
+        "priority tradeoffs"
+      ],
+      "owns": [
+        "well-bounded implementation"
+      ],
+      "preferred": 65
+    },
+    "communication_style": "steady, operations stories",
+    "compatibility_tags": [
+      "mentor"
+    ],
+    "energy": {
+      "baseline": 71,
+      "drains": [
+        "avoidable chaos",
+        "heroics as a plan"
+      ],
+      "energizers": [
+        "reducing incidents",
+        "clean runbooks"
+      ],
+      "resilience": 66
+    },
+    "friction": {
+      "baseline": 18,
+      "tolerance": 66,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 77,
+      "drains": [
+        "avoidable chaos",
+        "heroics as a plan"
+      ],
+      "energizers": [
+        "reducing incidents",
+        "clean runbooks"
+      ],
+      "focus": "making systems dependable",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "making systems dependable",
+        "reliability lead"
+      ],
+      "mission_hook": "making systems dependable"
+    },
+    "traits": {
+      "ambiguity_tolerance": 58,
+      "autonomy_need": 65,
+      "burnout_risk": 34,
+      "coachability": 80,
+      "collaboration": 75,
+      "crisis_response": "rises",
+      "integrity": 93,
+      "mentorship": 78,
+      "politics": "neutral",
+      "ramp_rate": 77,
+      "reliability": 91
+    }
+  },
+  "id": "yasmin",
+  "name": "Yasmin Cruz",
+  "role": "Senior DevOps Engineer",
+  "salary_cents": 15700000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 72,
+    "backend": 61,
+    "infra": 86,
+    "product": 46,
+    "quality": 79
+  },
+  "visible": {
+    "ambition": "reliability lead",
+    "interview": "steady, operations stories",
+    "motivation": "stability",
+    "seniority": "senior"
+  }
+}

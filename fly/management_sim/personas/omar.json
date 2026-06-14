@@ -1,0 +1,102 @@
+{
+  "backfill_fund_cents": 2700000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 67,
+      "outsources": [
+        "architecture decisions",
+        "priority tradeoffs"
+      ],
+      "owns": [
+        "well-bounded implementation"
+      ],
+      "preferred": 67
+    },
+    "communication_style": "warm, customer-aware, broad examples",
+    "compatibility_tags": [
+      "mentor"
+    ],
+    "energy": {
+      "baseline": 61,
+      "drains": [
+        "silos",
+        "credit hoarding"
+      ],
+      "energizers": [
+        "pairing",
+        "teaching",
+        "shared wins"
+      ],
+      "resilience": 46
+    },
+    "friction": {
+      "baseline": 27,
+      "tolerance": 46,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 70,
+      "drains": [
+        "silos",
+        "credit hoarding"
+      ],
+      "energizers": [
+        "pairing",
+        "teaching",
+        "shared wins"
+      ],
+      "focus": "making the whole group stronger",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "making the whole group stronger",
+        "mentor"
+      ],
+      "mission_hook": "making the whole group stronger"
+    },
+    "traits": {
+      "ambiguity_tolerance": 84,
+      "autonomy_need": 67,
+      "burnout_risk": 54,
+      "coachability": 89,
+      "collaboration": 93,
+      "crisis_response": "steady",
+      "integrity": 91,
+      "mentorship": 90,
+      "politics": "coalition",
+      "ramp_rate": 70,
+      "reliability": 81
+    }
+  },
+  "id": "omar",
+  "name": "Omar Hayes",
+  "role": "Senior Product Engineer",
+  "salary_cents": 15000000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 59,
+    "backend": 71,
+    "frontend": 76,
+    "product": 83,
+    "quality": 73
+  },
+  "visible": {
+    "ambition": "mentor",
+    "interview": "warm, customer-aware, broad examples",
+    "motivation": "team",
+    "seniority": "senior"
+  }
+}

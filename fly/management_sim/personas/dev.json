@@ -1,0 +1,100 @@
+{
+  "backfill_fund_cents": 2232000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 49,
+      "outsources": [
+        "architecture decisions",
+        "priority tradeoffs"
+      ],
+      "owns": [
+        "well-bounded implementation"
+      ],
+      "preferred": 49
+    },
+    "communication_style": "hands-on, practical, low ego",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 63,
+      "drains": [
+        "repetitive maintenance",
+        "shallow work"
+      ],
+      "energizers": [
+        "deep work",
+        "feedback"
+      ],
+      "resilience": 49
+    },
+    "friction": {
+      "baseline": 25,
+      "tolerance": 49,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 88,
+      "drains": [
+        "repetitive maintenance",
+        "shallow work"
+      ],
+      "energizers": [
+        "deep work",
+        "feedback"
+      ],
+      "focus": "becoming excellent at a craft",
+      "preferred": 75
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 70,
+      "meaningful_outcomes": [
+        "becoming excellent at a craft",
+        "senior"
+      ],
+      "mission_hook": "becoming excellent at a craft"
+    },
+    "traits": {
+      "ambiguity_tolerance": 61,
+      "autonomy_need": 49,
+      "burnout_risk": 51,
+      "coachability": 94,
+      "collaboration": 82,
+      "crisis_response": "steady",
+      "integrity": 89,
+      "mentorship": 39,
+      "politics": "neutral",
+      "ramp_rate": 88,
+      "reliability": 80
+    }
+  },
+  "id": "dev",
+  "name": "Dev Shah",
+  "role": "Mid-Level Infrastructure Engineer",
+  "salary_cents": 12400000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 51,
+    "backend": 56,
+    "infra": 74,
+    "product": 38,
+    "quality": 69
+  },
+  "visible": {
+    "ambition": "senior",
+    "interview": "hands-on, practical, low ego",
+    "motivation": "mastery",
+    "seniority": "mid"
+  }
+}

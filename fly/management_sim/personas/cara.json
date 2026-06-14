@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 2844000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 87,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 87
+    },
+    "communication_style": "confident, roadmap-heavy",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 61,
+      "drains": [
+        "being sidelined",
+        "low-status maintenance"
+      ],
+      "energizers": [
+        "high-visibility problems",
+        "influence"
+      ],
+      "resilience": 45
+    },
+    "friction": {
+      "baseline": 27,
+      "tolerance": 45,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "low-drama"
+    ],
+    "mastery": {
+      "baseline": 63,
+      "drains": [
+        "being sidelined",
+        "low-status maintenance"
+      ],
+      "energizers": [
+        "high-visibility problems",
+        "influence"
+      ],
+      "focus": "being recognized as authoritative",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 58,
+      "meaningful_outcomes": [
+        "being recognized as authoritative",
+        "director"
+      ],
+      "mission_hook": "being recognized as authoritative"
+    },
+    "traits": {
+      "ambiguity_tolerance": 83,
+      "autonomy_need": 87,
+      "burnout_risk": 55,
+      "coachability": 50,
+      "collaboration": 74,
+      "crisis_response": "deflects",
+      "integrity": 67,
+      "mentorship": 56,
+      "politics": "coalition",
+      "ramp_rate": 63,
+      "reliability": 70
+    }
+  },
+  "id": "cara",
+  "name": "Cara Morgan",
+  "role": "Senior Product Manager",
+  "salary_cents": 15800000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 52,
+    "communication": 88,
+    "design": 64,
+    "product": 89,
+    "quality": 58
+  },
+  "visible": {
+    "ambition": "director",
+    "interview": "confident, roadmap-heavy",
+    "motivation": "status",
+    "seniority": "senior"
+  }
+}

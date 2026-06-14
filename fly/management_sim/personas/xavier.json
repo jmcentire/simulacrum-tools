@@ -1,0 +1,101 @@
+{
+  "backfill_fund_cents": 3852000,
+  "hidden": {
+    "autonomy": {
+      "baseline": 98,
+      "outsources": [
+        "priority tradeoffs",
+        "stakeholder negotiation"
+      ],
+      "owns": [
+        "technical approach",
+        "local sequencing"
+      ],
+      "preferred": 98
+    },
+    "communication_style": "impressive, very opinionated",
+    "compatibility_tags": [
+      "independent"
+    ],
+    "energy": {
+      "baseline": 68,
+      "drains": [
+        "being sidelined",
+        "low-status maintenance"
+      ],
+      "energizers": [
+        "high-visibility problems",
+        "influence"
+      ],
+      "resilience": 59
+    },
+    "friction": {
+      "baseline": 20,
+      "tolerance": 59,
+      "triggers": [
+        "unclear priorities",
+        "constant context switching",
+        "being asked to absorb avoidable chaos"
+      ]
+    },
+    "friction_tags": [
+      "status-sensitive"
+    ],
+    "mastery": {
+      "baseline": 92,
+      "drains": [
+        "being sidelined",
+        "low-status maintenance"
+      ],
+      "energizers": [
+        "high-visibility problems",
+        "influence"
+      ],
+      "focus": "being recognized as authoritative",
+      "preferred": 62
+    },
+    "purpose": {
+      "anti_purpose": [
+        "work that is only for optics",
+        "unclear success criteria"
+      ],
+      "baseline": 58,
+      "meaningful_outcomes": [
+        "being recognized as authoritative",
+        "technical authority"
+      ],
+      "mission_hook": "being recognized as authoritative"
+    },
+    "traits": {
+      "ambiguity_tolerance": 75,
+      "autonomy_need": 98,
+      "burnout_risk": 41,
+      "coachability": 31,
+      "collaboration": 42,
+      "crisis_response": "deflects",
+      "integrity": 68,
+      "mentorship": 54,
+      "politics": "status",
+      "ramp_rate": 92,
+      "reliability": 74
+    }
+  },
+  "id": "xavier",
+  "name": "Xavier Reed",
+  "role": "Principal Engineer",
+  "salary_cents": 21400000,
+  "schema_version": 1,
+  "skills": {
+    "architecture": 96,
+    "backend": 88,
+    "infra": 82,
+    "product": 61,
+    "quality": 85
+  },
+  "visible": {
+    "ambition": "technical authority",
+    "interview": "impressive, very opinionated",
+    "motivation": "status",
+    "seniority": "principal"
+  }
+}
