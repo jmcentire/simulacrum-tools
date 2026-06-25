@@ -295,5 +295,185 @@
     "prompt": "Product wants to simplify a workflow by hiding advanced options. You think it will hurt expert users. How do you make the argument without turning it into a turf war?",
     "targets": ["user evidence", "cross-functional trust", "tradeoffs"],
     "failure_modes": ["engineer ego", "defer blindly", "argue from taste"]
+  },
+  {
+    "id": "microservices-by-default",
+    "category": "architecture",
+    "difficulty": "hard",
+    "title": "The microservices reflex",
+    "prompt": "A new team wants to split a greenfield product into eleven microservices before writing a line of business logic, citing scalability. The product has zero users. What do you ask before they commit to that topology?",
+    "targets": ["coupling cost", "premature distribution", "reversibility"],
+    "failure_modes": ["distributing before you understand the domain", "buying operational overhead for imagined scale", "mistaking deployment units for design"]
+  },
+  {
+    "id": "premature-abstraction",
+    "category": "design",
+    "difficulty": "medium",
+    "title": "The abstraction with one implementation",
+    "prompt": "An engineer introduces an interface, a factory, and a plugin registry to support a second backend nobody has asked for and that may never exist. How do you respond without crushing the instinct that produced it?",
+    "targets": ["cost of speculative generality", "rule of three", "when to extract"],
+    "failure_modes": ["abstracting before the second case exists", "treating flexibility as free", "confusing indirection with design"]
+  },
+  {
+    "id": "shared-database-coupling",
+    "category": "architecture",
+    "difficulty": "hard",
+    "title": "The database everyone reaches into",
+    "prompt": "Three services read and write the same tables directly. A single column rename now requires coordinating four deploys. What is the actual problem here, and what is the smallest change that addresses it?",
+    "targets": ["ownership boundaries", "implicit contracts", "incremental decoupling"],
+    "failure_modes": ["calling it a microservices problem", "rewriting everything at once", "ignoring who owns the schema"]
+  },
+  {
+    "id": "event-sourcing-temptation",
+    "category": "architecture",
+    "difficulty": "hard",
+    "title": "Event sourcing for a settings page",
+    "prompt": "A team wants to rebuild a user-settings page as a fully event-sourced system so they 'never lose history.' What do you inspect before agreeing, and what cheaper option might give them what they actually want?",
+    "targets": ["matching mechanism to requirement", "audit-log vs event-sourcing", "operational complexity"],
+    "failure_modes": ["adopting a pattern for its name", "ignoring read-model and replay cost", "solving auditing with architecture"]
+  },
+  {
+    "id": "god-object",
+    "category": "design",
+    "difficulty": "medium",
+    "title": "The object that knows everything",
+    "prompt": "One class has grown to 3,000 lines and is imported by nearly every module; every feature touches it. How do you decide where to make the first cut, and how do you avoid making things worse mid-refactor?",
+    "targets": ["seams and responsibilities", "safe extraction order", "behavior-preserving change"],
+    "failure_modes": ["splitting by file size instead of responsibility", "a big-bang rewrite", "extracting before you have tests"]
+  },
+  {
+    "id": "distributed-monolith",
+    "category": "architecture",
+    "difficulty": "hard",
+    "title": "Services that must deploy together",
+    "prompt": "You have ten services, but releasing any one requires releasing the other nine in lockstep. Where did the design go wrong, and what would you change first?",
+    "targets": ["independent deployability", "contract stability", "coupling diagnosis"],
+    "failure_modes": ["adding more services", "blaming tooling instead of contracts", "treating versioning as optional"]
+  },
+  {
+    "id": "caching-as-fix",
+    "category": "architecture",
+    "difficulty": "medium",
+    "title": "The cache that hides the problem",
+    "prompt": "A slow endpoint is made fast by dropping a five-minute cache in front of it. Two weeks later, stale-data bugs surface. What question should have been asked before the cache went in?",
+    "targets": ["root cause vs symptom", "invalidation cost", "where the slowness lives"],
+    "failure_modes": ["caching instead of fixing the query", "ignoring invalidation", "trading a latency bug for a correctness bug"]
+  },
+  {
+    "id": "sync-call-chain",
+    "category": "distributed-systems",
+    "difficulty": "hard",
+    "title": "The synchronous call seven levels deep",
+    "prompt": "A single user request fans out through seven synchronous service calls; if any one is slow, the whole request hangs. The team wants to add retries everywhere. Is that the right move?",
+    "targets": ["latency and failure compounding", "sync vs async boundaries", "timeout and backpressure design"],
+    "failure_modes": ["retries amplifying load", "ignoring tail-latency math", "treating a topology problem as a reliability knob"]
+  },
+  {
+    "id": "config-over-code",
+    "category": "design",
+    "difficulty": "medium",
+    "title": "The configuration language nobody can read",
+    "prompt": "To avoid code deploys, a team built a YAML-driven rules engine. Business logic now lives in 2,000 lines of nested config only one person understands. What went wrong, and what do you do about it?",
+    "targets": ["inner-platform effect", "testability of logic", "where complexity actually moved"],
+    "failure_modes": ["reinventing a programming language badly", "calling config 'not code'", "optimizing for deploy avoidance over comprehension"]
+  },
+  {
+    "id": "backward-compatibility",
+    "category": "api-design",
+    "difficulty": "hard",
+    "title": "The API you can never change",
+    "prompt": "A public API shipped without versioning and is now used by hundreds of integrators. Product wants to change the meaning of an existing response field. How do you reason about it?",
+    "targets": ["contract obligations", "additive vs breaking change", "migration paths"],
+    "failure_modes": ["mutating a field's meaning in place", "breaking clients silently", "treating versioning as a future problem"]
+  },
+  {
+    "id": "consistency-vs-availability",
+    "category": "distributed-systems",
+    "difficulty": "hard",
+    "title": "When the network splits",
+    "prompt": "A team designing a multi-region system insists every write must be instantly consistent everywhere. What do you make them confront before they build it?",
+    "targets": ["CAP tradeoffs", "real consistency requirements per use case", "partition behavior"],
+    "failure_modes": ["demanding strong consistency by default", "ignoring partition reality", "applying one guarantee to every operation"]
+  },
+  {
+    "id": "normalize-or-denormalize",
+    "category": "data-modeling",
+    "difficulty": "medium",
+    "title": "The schema argument",
+    "prompt": "Two engineers are certain and opposed: one wants a fully normalized schema, the other wants denormalized tables for read speed. How do you move the discussion off taste and onto something decidable?",
+    "targets": ["access patterns first", "read/write ratio", "cost of derived data"],
+    "failure_modes": ["arguing principles without query patterns", "denormalizing before there is a read problem", "ignoring who keeps copies in sync"]
+  },
+  {
+    "id": "queue-as-buffer",
+    "category": "architecture",
+    "difficulty": "medium",
+    "title": "The queue that papers over a mismatch",
+    "prompt": "A team inserts a message queue between a fast producer and a slow consumer to 'decouple' them. The queue keeps growing without bound. What is the growing queue actually telling you?",
+    "targets": ["throughput mismatch", "backpressure", "queues as symptom vs solution"],
+    "failure_modes": ["treating a queue as infinite capacity", "decoupling instead of fixing throughput", "ignoring what unbounded growth implies"]
+  },
+  {
+    "id": "framework-driven-design",
+    "category": "design",
+    "difficulty": "medium",
+    "title": "Letting the framework decide the architecture",
+    "prompt": "A team structures the entire application around their web framework's conventions, and now core business logic can't be exercised without booting the framework. What is the cost, and what would you change?",
+    "targets": ["dependency direction", "isolating domain logic", "testability"],
+    "failure_modes": ["coupling business rules to delivery mechanism", "untestable core logic", "mistaking the framework for the application"]
+  },
+  {
+    "id": "nullable-everywhere",
+    "category": "data-modeling",
+    "difficulty": "medium",
+    "title": "The model where every field is optional",
+    "prompt": "To 'stay flexible,' a data model made every field nullable. Now every consumer is full of defensive null checks and nobody knows which field combinations are actually valid. How do you fix the real problem?",
+    "targets": ["making illegal states unrepresentable", "encoding invariants in types", "explicit variants"],
+    "failure_modes": ["pushing validation onto every reader", "flexibility that hides required structure", "modeling absence instead of meaning"]
+  },
+  {
+    "id": "rewrite-temptation",
+    "category": "architecture",
+    "difficulty": "hard",
+    "title": "The rewrite that will fix everything",
+    "prompt": "A team is convinced the legacy system is beyond saving and wants a full rewrite, estimated at three months. What do you ask before approving it, and what is the most likely way it fails?",
+    "targets": ["hidden knowledge in legacy code", "incremental strangler approach", "estimation under uncertainty"],
+    "failure_modes": ["discarding hard-won edge-case handling", "two systems to maintain indefinitely", "assuming the rewrite inherits no old constraints"]
+  },
+  {
+    "id": "abstraction-leak",
+    "category": "design",
+    "difficulty": "hard",
+    "title": "The abstraction that lies",
+    "prompt": "An ORM presents the database as plain in-memory objects, but an innocent-looking loop issues 400 queries. The team wants a faster database. What is the actual fix?",
+    "targets": ["leaky abstractions", "N+1 diagnosis", "knowing the layer below"],
+    "failure_modes": ["throwing hardware at a design problem", "trusting the abstraction blindly", "fixing symptoms one query at a time"]
+  },
+  {
+    "id": "boundary-by-layer-or-feature",
+    "category": "architecture",
+    "difficulty": "medium",
+    "title": "Layers versus features",
+    "prompt": "A codebase is split into controllers/, services/, and models/, but every feature change touches all three folders. Someone proposes organizing by feature instead. How do you reason about the tradeoff?",
+    "targets": ["axis of change", "cohesion vs layering", "coupling that follows real work"],
+    "failure_modes": ["organizing by technical role over change patterns", "treating folder structure as architecture", "ignoring how teams actually edit code"]
+  },
+  {
+    "id": "idempotency-afterthought",
+    "category": "distributed-systems",
+    "difficulty": "hard",
+    "title": "The retry that charges twice",
+    "prompt": "Under load, a payment service occasionally processes the same request twice because a client retried. The team wants to 'just add a lock.' Is that the right frame?",
+    "targets": ["idempotency keys", "exactly-once illusion", "deduplication at the boundary"],
+    "failure_modes": ["locking instead of designing for retries", "assuming the network delivers once", "putting correctness in the client"]
+  },
+  {
+    "id": "extensibility-tax",
+    "category": "design",
+    "difficulty": "medium",
+    "title": "Designing for requirements that may never come",
+    "prompt": "A team wants every component pluggable and configurable 'so we're ready for anything.' What is the cost of that flexibility, and how do you decide how much is the right amount?",
+    "targets": ["YAGNI", "carrying cost of options", "designing for the known case first"],
+    "failure_modes": ["paying for flexibility you never use", "configuration as a substitute for decisions", "optimizing for imagined futures"]
   }
 ]
