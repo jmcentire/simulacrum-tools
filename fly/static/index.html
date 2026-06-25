@@ -376,7 +376,11 @@
     useScenarioButton.addEventListener('click', () => {
       const scenario = scenarios.find(s => s.id === scenarioSelect.value);
       if (!scenario) return;
-      input.value = scenario.prompt;
+      // Put the scenario in the conversation so the learner can read it,
+      // then type their own response in the text box.
+      dialog.push({ role: 'jeremy', text: scenario.prompt });
+      render();
+      scenarioSelect.value = '';
       input.focus();
     });
 
