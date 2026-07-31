@@ -135,6 +135,8 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     turnstile_token: Optional[str] = None
     temperature: float = 0.7
+    register: Optional[str] = None
+    mode: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -142,6 +144,7 @@ class ChatResponse(BaseModel):
     agent: str
     phase: str
     mode: Optional[str] = None
+    register: Optional[str] = None
     remaining: int
     session_id: str
 
@@ -183,6 +186,19 @@ def _valid_register(value: Optional[str]) -> str:
 
 def _valid_mode(value: Optional[str]) -> str:
     return value if value in ("review", "teach") else "review"
+
+
+def _resolve_modes(req: "ChatRequest", cookie_register: Optional[str], cookie_mode: Optional[str]) -> tuple[str, str]:
+    """Resolve register and chat mode: explicit request-body values win over
+    cookies. Explicit invalid values are a client error, not a silent default."""
+    if req.register is not None and req.register not in ("professional", "sailor"):
+        raise HTTPException(status_code=400, detail="register must be 'professional' or 'sailor'")
+    if req.mode is not None and req.mode not in ("review", "teach"):
+        raise HTTPException(status_code=400, detail="mode must be 'review' or 'teach'")
+    return (
+        req.register or _valid_register(cookie_register),
+        req.mode or _valid_mode(cookie_mode),
+    )
 
 
 def _dialog_from_turns(turns: list[dict]) -> list[tuple[str, str]]:
@@ -407,13 +423,14 @@ async def chat(req: ChatRequest,
                authorization: Optional[str] = Header(None),
                x_api_key: Optional[str] = Header(None, alias="X-API-Key")) -> JSONResponse:
     api_key = _api_key_from_headers(authorization, x_api_key)
+    register_mode, chat_mode = _resolve_modes(req, simulacrum_register, simulacrum_mode)
+    if not req.dialog:
+        raise HTTPException(status_code=400, detail="empty dialog")
     api_remaining = 0
     if api_key:
         user, api_remaining = _consume_api_key(api_key)
     else:
         user = _require_user(simulacrum_session)
-    if not req.dialog:
-        raise HTTPException(status_code=400, detail="empty dialog")
 
     timestamps = _read_counter(simulacrum_counter)
     if not api_key:
@@ -430,8 +447,6 @@ async def chat(req: ChatRequest,
 
     invalid_register = simulacrum_register is not None and simulacrum_register not in ("professional", "sailor")
     invalid_mode = simulacrum_mode is not None and simulacrum_mode not in ("review", "teach")
-    register_mode = _valid_register(simulacrum_register)
-    chat_mode = _valid_mode(simulacrum_mode)
 
     session = chat_memory.get_session(req.session_id or simulacrum_chat_session, user["id"])
     if not session:
@@ -508,6 +523,7 @@ async def chat(req: ChatRequest,
         agent=out["agent"],
         phase=out["phase"],
         mode=out.get("mode"),
+        register=register_mode,
         remaining=remaining,
         session_id=session["id"],
     ).model_dump())
