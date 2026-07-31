@@ -15,6 +15,9 @@ import db
 SESSION_COOKIE = "simulacrum_session"
 MAGIC_LINK_TTL_SECONDS = int(__import__("os").environ.get("MAGIC_LINK_TTL_SECONDS", "900"))
 SESSION_TTL_SECONDS = int(__import__("os").environ.get("SESSION_TTL_SECONDS", str(7 * 24 * 3600)))
+API_KEY_PREFIX = "sk-sim-"
+API_CAP_PER_WINDOW = int(__import__("os").environ.get("API_CAP_PER_WINDOW", "200"))
+API_WINDOW_SECONDS = 24 * 3600
 
 
 def _env(name: str, default: str = "") -> str:
@@ -243,6 +246,103 @@ def redeem_magic_link(token: str) -> tuple[dict[str, Any] | None, str | None]:
 
     session_token = _create_session(user["id"])
     return user, session_token
+
+
+class ApiKeyRateLimited(Exception):
+    def __init__(self, reset_in: int):
+        super().__init__(f"API key daily cap reached; resets in {reset_in}s")
+        self.reset_in = reset_in
+
+
+def create_api_key(
+    email: str,
+    label: str = "",
+    daily_cap: int | None = None,
+    raw_key: str | None = None,
+) -> str:
+    """Mint an API key for email, creating the user if needed.
+
+    Returns the raw key — only its HMAC hash is stored. Pass raw_key to
+    register a pre-provisioned key value instead of generating one.
+    """
+    raw = (raw_key or "").strip() or API_KEY_PREFIX + _new_token()
+    if len(raw) < 16:
+        raise ValueError("API key must be at least 16 characters")
+    user = find_user_by_email(email) or _create_user(email)
+    with db.connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO api_keys (id, key_hash, user_id, label, daily_cap, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (db.new_id(), db.hash_value(raw), user["id"], label, daily_cap, db.utc_now()),
+        )
+    return raw
+
+
+def authenticate_api_key(
+    raw_key: str | None, consume: bool = True
+) -> tuple[dict[str, Any], int] | None:
+    """Validate a raw API key; when consume is set, take one request from its
+    rolling daily window.
+
+    Returns (user, remaining) or None when the key is unknown or revoked.
+    Raises ApiKeyRateLimited when the key is over its daily cap.
+    """
+    if not raw_key:
+        return None
+    now = db.utc_now()
+    with db.connect() as conn:
+        row = conn.execute(
+            """
+            SELECT k.*, u.email
+            FROM api_keys k
+            JOIN users u ON u.id = k.user_id
+            WHERE k.key_hash = ? AND k.revoked_at IS NULL
+            """,
+            (db.hash_value(raw_key),),
+        ).fetchone()
+        if not row:
+            return None
+        cap = row["daily_cap"] or API_CAP_PER_WINDOW
+        window_start = row["window_start"]
+        window_count = row["window_count"]
+        if window_start is None or now - window_start >= API_WINDOW_SECONDS:
+            window_start, window_count = now, 0
+        if not consume:
+            return {"id": row["user_id"], "email": row["email"]}, max(0, cap - window_count)
+        if window_count >= cap:
+            raise ApiKeyRateLimited(max(0, window_start + API_WINDOW_SECONDS - now))
+        conn.execute(
+            """
+            UPDATE api_keys
+            SET window_start = ?, window_count = ?, last_used_at = ?
+            WHERE id = ?
+            """,
+            (window_start, window_count + 1, now, row["id"]),
+        )
+    return {"id": row["user_id"], "email": row["email"]}, cap - window_count - 1
+
+
+def list_api_keys(email: str) -> list[dict[str, Any]]:
+    user = find_user_by_email(email)
+    if not user:
+        return []
+    with db.connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM api_keys WHERE user_id = ? ORDER BY created_at",
+            (user["id"],),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def revoke_api_key(key_id: str) -> bool:
+    with db.connect() as conn:
+        cur = conn.execute(
+            "UPDATE api_keys SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL",
+            (db.utc_now(), key_id),
+        )
+    return cur.rowcount > 0
 
 
 def current_user(session_token: str | None) -> dict[str, Any] | None:

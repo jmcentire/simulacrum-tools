@@ -1,7 +1,7 @@
 {
   "name": "simulacrum",
   "displayName": "Simulacrum",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Jeremy McEntire-style adversarial advice and architecture pushback for Claude Code.",
   "author": {
     "name": "Jeremy McEntire",
