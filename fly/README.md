@@ -66,6 +66,13 @@ curl -s -X POST https://simulacrum-jmc.fly.dev/chat \
 Pass the returned `session_id` back in subsequent requests to continue a
 conversation. `--list` and `--revoke KEY_ID` manage existing keys.
 
+Optional body fields `register` (`professional` | `sailor`) and `mode`
+(`review` | `teach`) select the register and chat mode per request — they
+override the browser cookies, which API clients don't carry. The response
+echoes the applied `register`. Note the response's `mode` field (`A` /
+`DEFAULT`) is the specialist's per-turn classifier verdict, not a setting:
+adversarial engagement is elicited by the input's framing, not requested.
+
 ## Register modes
 
 The simulacrum ships with two register profiles, swappable per-user via UI toggle:
