@@ -37,11 +37,34 @@ Without `OPENAI_API_KEY` + `GENERALIST_MODEL`, the dispatcher routes everything 
 | `/sign-in` | GET / POST | none | Magic-link sign-in |
 | `/sign-up` | GET / POST | invite code | One-time-code signup |
 | `/logout` | GET | cookie | Clear session cookie |
-| `/chat` | POST | cookie | Send dialog, get response |
+| `/chat` | POST | cookie or API key | Send dialog, get response |
 | `/register` | POST | cookie | Set professional/sailor register cookie |
 | `/mode` | POST | cookie | Set review/teach chat mode |
 | `/api/management-sim/*` | GET / POST | session | Management simulator |
+| `/api/me` | GET | cookie or API key | Current identity (+ remaining API quota) |
 | `/healthz` | GET | none | Health + config status |
+
+### API access
+
+Headless clients authenticate with an API key via `X-API-Key: <key>` or
+`Authorization: Bearer <key>` — no cookies, Turnstile, or magic links. Keys are
+per-user, HMAC-hashed at rest, and capped server-side at `API_CAP_PER_WINDOW`
+requests per rolling 24h (default 200; per-key override at mint time). Mint on
+the production machine so the hash uses the live `SIMULACRUM_TOKEN`:
+
+```bash
+fly ssh console -a simulacrum-jmc -C \
+  "python3 /app/scripts/generate_api_key.py partner@example.com --label partner"
+```
+
+```bash
+curl -s -X POST https://simulacrum-jmc.fly.dev/chat \
+  -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
+  -d '{"dialog":[{"role":"user","text":"..."}]}'
+```
+
+Pass the returned `session_id` back in subsequent requests to continue a
+conversation. `--list` and `--revoke KEY_ID` manage existing keys.
 
 ## Register modes
 

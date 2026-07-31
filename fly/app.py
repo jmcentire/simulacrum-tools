@@ -11,8 +11,10 @@ The /chat endpoint dispatches each turn between two agents:
 Authenticated access:
   1. Invite-code signup.
   2. Magic-link sign-in for every browser session.
-  3. Persistent SQLite storage for users, memories, simulation runs, and events.
-  4. Cookie-based rolling-24h chat counter plus optional Turnstile.
+  3. API keys (Authorization: Bearer / X-API-Key) for headless clients, with a
+     server-side rolling-24h per-key cap. Mint via scripts/generate_api_key.py.
+  4. Persistent SQLite storage for users, memories, simulation runs, and events.
+  5. Cookie-based rolling-24h chat counter plus optional Turnstile (browser path).
 """
 
 from __future__ import annotations
@@ -153,6 +155,26 @@ def _require_user(session_token: Optional[str]) -> dict:
     if not user:
         raise HTTPException(status_code=401, detail="sign in required")
     return user
+
+
+def _api_key_from_headers(authorization: Optional[str], x_api_key: Optional[str]) -> Optional[str]:
+    if authorization and authorization.lower().startswith("bearer "):
+        return authorization[7:].strip() or None
+    return (x_api_key or "").strip() or None
+
+
+def _consume_api_key(raw_key: str) -> tuple[dict, int]:
+    """Authenticate an API key and spend one request from its daily window."""
+    try:
+        keyed = auth.authenticate_api_key(raw_key)
+    except auth.ApiKeyRateLimited as exc:
+        raise HTTPException(
+            status_code=429,
+            detail=f"API key daily cap reached. Try again in {exc.reset_in // 3600}h {(exc.reset_in % 3600) // 60}m.",
+        )
+    if not keyed:
+        raise HTTPException(status_code=401, detail="invalid API key")
+    return keyed
 
 
 def _valid_register(value: Optional[str]) -> str:
@@ -381,22 +403,30 @@ async def chat(req: ChatRequest,
                simulacrum_mode: Optional[str] = Cookie(None),
                simulacrum_chat_session: Optional[str] = Cookie(None),
                simulacrum_session: Optional[str] = Cookie(None),
-               cf_connecting_ip: Optional[str] = Header(None, alias="CF-Connecting-IP")) -> JSONResponse:
-    user = _require_user(simulacrum_session)
+               cf_connecting_ip: Optional[str] = Header(None, alias="CF-Connecting-IP"),
+               authorization: Optional[str] = Header(None),
+               x_api_key: Optional[str] = Header(None, alias="X-API-Key")) -> JSONResponse:
+    api_key = _api_key_from_headers(authorization, x_api_key)
+    api_remaining = 0
+    if api_key:
+        user, api_remaining = _consume_api_key(api_key)
+    else:
+        user = _require_user(simulacrum_session)
     if not req.dialog:
         raise HTTPException(status_code=400, detail="empty dialog")
 
     timestamps = _read_counter(simulacrum_counter)
-    if len(timestamps) >= CAP_PER_WINDOW:
-        oldest = min(timestamps)
-        reset_in = max(0, WINDOW_SECONDS - (int(time.time()) - oldest))
-        raise HTTPException(
-            status_code=429,
-            detail=f"Daily message cap reached ({CAP_PER_WINDOW}). Try again in {reset_in // 3600}h {(reset_in % 3600) // 60}m.",
-        )
+    if not api_key:
+        if len(timestamps) >= CAP_PER_WINDOW:
+            oldest = min(timestamps)
+            reset_in = max(0, WINDOW_SECONDS - (int(time.time()) - oldest))
+            raise HTTPException(
+                status_code=429,
+                detail=f"Daily message cap reached ({CAP_PER_WINDOW}). Try again in {reset_in // 3600}h {(reset_in % 3600) // 60}m.",
+            )
 
-    if not await _verify_turnstile(req.turnstile_token, cf_connecting_ip):
-        raise HTTPException(status_code=403, detail="Bot check failed. Refresh and try again.")
+        if not await _verify_turnstile(req.turnstile_token, cf_connecting_ip):
+            raise HTTPException(status_code=403, detail="Bot check failed. Refresh and try again.")
 
     invalid_register = simulacrum_register is not None and simulacrum_register not in ("professional", "sailor")
     invalid_mode = simulacrum_mode is not None and simulacrum_mode not in ("review", "teach")
@@ -467,8 +497,11 @@ async def chat(req: ChatRequest,
 
     chat_memory.append_turn(session["id"], user["id"], "assistant", out["text"])
 
-    timestamps.append(int(time.time()))
-    remaining = max(0, CAP_PER_WINDOW - len(timestamps))
+    if api_key:
+        remaining = api_remaining
+    else:
+        timestamps.append(int(time.time()))
+        remaining = max(0, CAP_PER_WINDOW - len(timestamps))
 
     resp = JSONResponse(ChatResponse(
         response=out["text"],
@@ -478,10 +511,11 @@ async def chat(req: ChatRequest,
         remaining=remaining,
         session_id=session["id"],
     ).model_dump())
-    resp.set_cookie(
-        COUNTER_COOKIE, _write_counter(timestamps),
-        max_age=WINDOW_SECONDS, httponly=True, samesite="lax", secure=COOKIE_SECURE,
-    )
+    if not api_key:
+        resp.set_cookie(
+            COUNTER_COOKIE, _write_counter(timestamps),
+            max_age=WINDOW_SECONDS, httponly=True, samesite="lax", secure=COOKIE_SECURE,
+        )
     if invalid_register:
         resp.set_cookie(
             REGISTER_COOKIE, register_mode,
@@ -577,7 +611,7 @@ async def healthz():
         "ok": True,
         "specialist": "anthropic-fewshot",
         "teach": "anthropic-planner-loop",
-        "auth": "magic-link",
+        "auth": "magic-link+api-key",
         "simulation": "management",
         "generalist": "configured" if generalist_configured() else "disabled",
         "chat_modes": ["review", "teach"],
@@ -616,7 +650,18 @@ async def set_mode(mode: str = Form(...), simulacrum_session: Optional[str] = Co
 
 
 @app.get("/api/me")
-async def me(simulacrum_session: Optional[str] = Cookie(None)):
+async def me(
+    simulacrum_session: Optional[str] = Cookie(None),
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+):
+    api_key = _api_key_from_headers(authorization, x_api_key)
+    if api_key:
+        keyed = auth.authenticate_api_key(api_key, consume=False)
+        if not keyed:
+            raise HTTPException(status_code=401, detail="invalid API key")
+        user, remaining = keyed
+        return {"user": user, "api_remaining": remaining}
     return {"user": _require_user(simulacrum_session)}
 
 

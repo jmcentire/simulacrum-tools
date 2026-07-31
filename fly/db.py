@@ -101,6 +101,20 @@ def init_db() -> None:
                 FOREIGN KEY(user_id) REFERENCES users(id)
             );
 
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id TEXT PRIMARY KEY,
+                key_hash TEXT NOT NULL UNIQUE,
+                user_id TEXT NOT NULL,
+                label TEXT NOT NULL DEFAULT '',
+                daily_cap INTEGER,
+                window_start INTEGER,
+                window_count INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL,
+                last_used_at INTEGER,
+                revoked_at INTEGER,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            );
+
             CREATE TABLE IF NOT EXISTS memories (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
@@ -225,6 +239,7 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
             CREATE INDEX IF NOT EXISTS idx_magic_links_token_hash ON magic_links(token_hash);
             CREATE INDEX IF NOT EXISTS idx_magic_links_email ON magic_links(email);
+            CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
             CREATE INDEX IF NOT EXISTS idx_memories_user_id ON memories(user_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON chat_sessions(user_id, updated_at DESC);
             CREATE INDEX IF NOT EXISTS idx_chat_turns_session_id ON chat_turns(session_id, turn_number ASC);

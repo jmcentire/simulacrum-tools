@@ -18,6 +18,8 @@ COPY agents/ ./agents/
 COPY management_sim/ ./management_sim/
 COPY data/ ./data/
 COPY static/ ./static/
+# api-key minting via fly ssh console
+COPY scripts/ ./scripts/
 
 EXPOSE 8080
 
