@@ -9,11 +9,17 @@ pip install anthropic openai
 ln -s ../fly/data/adversarial_pairs_annotated.json .   # or set $SIMULACRUM_DATA
 ```
 
-## Required env
+## Anthropic billing
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export WANDER_ANTHROPIC_API_KEY=sk-ant-...  # preferred when available
+# Portable fallback: export ANTHROPIC_API_KEY=sk-ant-...
 ```
+
+The CLI uses the first non-empty value from `WANDER_ANTHROPIC_API_KEY`,
+`SIM_ANTHROPIC_API_KEY`, `ANTHROPIC_API_KEY`, and `JMC_ANTHROPIC_API_KEY`.
+Classifier and specialist calls default to `claude-sonnet-4-6`; use
+`SIMULACRUM_MODEL` or the phase-specific model variables to override it.
 
 ## Optional env (enables generalist branch)
 

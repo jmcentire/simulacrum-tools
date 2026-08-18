@@ -8,6 +8,7 @@ from typing import Any
 
 import anthropic
 
+from anthropic_config import DEFAULT_ANTHROPIC_MODEL, anthropic_api_key
 from .guard import InputGuard, OutputAuditor
 from .latent_state import state_hash
 from .models import AuditResult, HiddenState, PersonaDefinition
@@ -15,14 +16,14 @@ from .observations import persona_observations
 from . import persistence
 
 
-DEFAULT_MODEL = os.environ.get("MANAGEMENT_SIM_MODEL", "claude-sonnet-4-5")
+DEFAULT_MODEL = os.environ.get("MANAGEMENT_SIM_MODEL", DEFAULT_ANTHROPIC_MODEL)
 TURN_LIMIT = 6
 logger = logging.getLogger(__name__)
 
 
 class PersonaActor:
     def __init__(self, model: str = DEFAULT_MODEL):
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        api_key = anthropic_api_key(required=False)
         self.client = anthropic.Anthropic(api_key=api_key) if api_key else None
         self.model = model
 

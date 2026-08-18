@@ -7,7 +7,7 @@ management simulation module.
 
 ```bash
 fly launch --no-deploy --copy-config         # rename the app — pick something unique
-fly secrets set ANTHROPIC_API_KEY=sk-ant-...
+fly secrets set WANDER_ANTHROPIC_API_KEY="$WANDER_ANTHROPIC_API_KEY"
 fly secrets set SIMULACRUM_TOKEN=$(openssl rand -hex 32)   # session HMAC key
 fly secrets set RESEND_API_KEY=re_...
 fly secrets set RESEND_FROM="Simulacrum <onboarding@your-domain>"
@@ -27,6 +27,11 @@ fly deploy
 ```
 
 Without `OPENAI_API_KEY` + `GENERALIST_MODEL`, the dispatcher routes everything to the specialist. Still works; weaker on pure autobiographical recall.
+
+Anthropic clients use the first non-empty key from
+`WANDER_ANTHROPIC_API_KEY`, `SIM_ANTHROPIC_API_KEY`, `ANTHROPIC_API_KEY`, and
+`JMC_ANTHROPIC_API_KEY`. The Wander key is therefore the billing source when
+it is configured, while the generic name remains a portable fallback.
 
 ## Endpoints
 
@@ -97,7 +102,7 @@ The chat response includes diagnostic fields: `phase` (GENERALIST/SPECIALIST/TEA
 
 - Specialist call: ~10K input tokens (prompt) + ~1K output. Anthropic prompt caching reduces input cost ~90% on warm cache (5-min TTL).
 - Generalist call: ~1K input + ~500 output (fine-tuned gpt-4o-mini).
-- Classifier call: ~500 input + 100 output (Anthropic claude-sonnet-4-5).
+- Classifier call: ~500 input + 100 output (Anthropic claude-sonnet-4-6).
 
 Per-turn cost: roughly $0.015 cold, $0.005 warm.
 

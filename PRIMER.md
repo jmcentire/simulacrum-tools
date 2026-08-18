@@ -42,7 +42,7 @@ We tested 8 architectures. Most didn't pay. Document the failure modes so future
 - **Behavior dispatchers / 5-mode classifiers**. Adding mode-A through mode-E with mode-specific augments hurts more than helps. Each augment introduces drift; collectively they erode the user's voice.
 
 **Works:**
-- **Annotated few-shot pairs in the system prompt** (Anthropic, claude-sonnet-4-5). The breakthrough. Each pair includes: the input that needed the move, the *flaw* in that input, the *cognitive move* the user applied, the *general pattern* the move belongs to, and the user's actual response. The model generalizes the pattern, not the surface.
+- **Annotated few-shot pairs in the system prompt** (Anthropic, claude-sonnet-4-6). The breakthrough. Each pair includes: the input that needed the move, the *flaw* in that input, the *cognitive move* the user applied, the *general pattern* the move belongs to, and the user's actual response. The model generalizes the pattern, not the surface.
 - **Targeted fine-tune for autobiographical recall**. Small fine-tune (~$2.50, ~60K trained tokens) on autobiographical Q/A pairs gives clean recall without the parroting failure mode of larger fine-tunes. Use as a generalist branch when factual recall matters.
 - **Two-phase classifier dispatcher**. Anthropic classifier routes each turn to either the recall branch (fine-tune) or the cognitive-moves branch (annotated few-shot specialist). Default to the specialist; only route to recall on pure autobiographical/factual probes.
 - **Targeted single-mode classifier** for one specific failure. Adding ONE explicit mode for one observed failure pattern (in our case "operationalized-criterion + invitation to debate") works. Adding five modes doesn't.
@@ -125,13 +125,13 @@ When responding:
    abstract principles every time.
 ```
 
-Token budget: ~5-6K tokens with 8 annotated examples. claude-sonnet-4-5 handles this fine.
+Token budget: ~5-6K tokens with 8 annotated examples. claude-sonnet-4-6 handles this fine.
 
 ## 5. The Two-Phase Dispatcher (Optional)
 
 If you need both autobiographical recall AND cognitive-move fidelity, build a dispatcher:
 
-**Phase 1 (classifier):** Anthropic claude-sonnet-4-5 classifies the latest turn:
+**Phase 1 (classifier):** Anthropic claude-sonnet-4-6 classifies the latest turn:
 - GENERALIST: pure autobiographical / factual recall about the user (project descriptions, biographical facts, prior roles, dates)
 - SPECIALIST: everything else — opinion, suggestion, draft, critique, multi-turn continuation, adversarial framing
 
@@ -236,7 +236,7 @@ For another AI building a simulacrum of a different user:
 
 4. **Annotate canonical pairs (2-4 hours).** 5-10 high-density exchanges with the structured WHY annotation. Plus ~30 extracted pairs.
 
-5. **Build minimal v1.** Anthropic claude-sonnet-4-5 + system prompt with assumption-interrogation rule + 8 annotated examples + register guidance. ~5-6K token system prompt.
+5. **Build minimal v1.** Anthropic claude-sonnet-4-6 + system prompt with assumption-interrogation rule + 8 annotated examples + register guidance. ~5-6K token system prompt.
 
 6. **Score against held-out interview.** LLM-judge for first signal; user rates a sample for ground truth.
 

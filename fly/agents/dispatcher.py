@@ -1,6 +1,6 @@
 """v9.2 dispatcher: two-phase classifier between generalist and specialist.
 
-Phase 1 (Anthropic claude-sonnet-4-5): classifies the most recent dialog
+Phase 1 (Anthropic claude-sonnet-4-6): classifies the most recent dialog
 turn as GENERALIST (direct-recall, well-formed-direct) or SPECIALIST
 (adversarial framing, malformed premise, contrarian bait).
 
@@ -11,16 +11,16 @@ Phase 2 dispatch:
 
 from __future__ import annotations
 
-import os
 import re
 
 import anthropic
 
+from anthropic_config import DEFAULT_ANTHROPIC_MODEL, anthropic_api_key
 from .generalist import GeneralistAgent, is_configured as generalist_configured
 from .specialist import SpecialistAgent
 
 
-CLASSIFIER_MODEL = "claude-sonnet-4-5"
+CLASSIFIER_MODEL = DEFAULT_ANTHROPIC_MODEL
 
 PHASE1_PROMPT = """Classify this dialog setup into ONE of two phases.
 
@@ -52,10 +52,7 @@ REASON: <one sentence>"""
 
 class Dispatcher:
     def __init__(self):
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY required for classifier")
-        self._classifier = anthropic.Anthropic(api_key=api_key)
+        self._classifier = anthropic.Anthropic(api_key=anthropic_api_key())
         self._specialist = SpecialistAgent()
         # Generalist is optional — only init if env vars are configured.
         # Without it, all turns route to specialist (still works, just weaker

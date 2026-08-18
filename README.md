@@ -18,10 +18,10 @@ A cognitive simulacrum of [Jeremy McEntire](https://perardua.dev) — an AI agen
 
 Two-phase dispatch:
 
-1. **Classifier** (Anthropic claude-sonnet-4-5) labels each turn as GENERALIST (purely autobiographical/factual recall) or SPECIALIST (everything else — opinion, suggestion, drafting, critique, adversarial framing, multi-turn continuation).
+1. **Classifier** (Anthropic claude-sonnet-4-6) labels each turn as GENERALIST (purely autobiographical/factual recall) or SPECIALIST (everything else — opinion, suggestion, drafting, critique, adversarial framing, multi-turn continuation).
 2. **Dispatch:**
    - GENERALIST → fine-tuned OpenAI model (optional; only fires if `GENERALIST_MODEL` is configured)
-   - SPECIALIST → Anthropic claude-sonnet-4-5 + 11 annotated few-shot pairs + a Mode-A operationalized-criterion sub-classifier
+   - SPECIALIST → Anthropic claude-sonnet-4-6 + 11 annotated few-shot pairs + a Mode-A operationalized-criterion sub-classifier
 
 The system prompt also carries two load-bearing meta-rules: **assumption-interrogation** (before applying conventional advice, identify the assumption it depends on and check whether it holds in this context) and **architecture-review posture** (when reviewing existing systems, identify the constraint envelope first; demand it if missing; don't alternative-shop).
 
@@ -54,7 +54,8 @@ git clone https://github.com/jmcentire/simulacrum.git
 cd simulacrum/skill
 ln -s ../fly/data/adversarial_pairs_annotated.json .
 pip install anthropic openai
-export ANTHROPIC_API_KEY=sk-ant-...
+export WANDER_ANTHROPIC_API_KEY=sk-ant-...  # preferred when available
+# Portable fallback: export ANTHROPIC_API_KEY=sk-ant-...
 ./run.py "Every team needs a strong manager."
 ```
 
@@ -72,7 +73,7 @@ Then invoke `/simulacrum:get-advice` with an idea, plan, claim, draft, or archit
 ```bash
 cd simulacrum/fly
 fly launch --no-deploy --copy-config        # rename the app — pick something unique
-fly secrets set ANTHROPIC_API_KEY=sk-ant-...
+fly secrets set WANDER_ANTHROPIC_API_KEY="$WANDER_ANTHROPIC_API_KEY"
 fly secrets set SIMULACRUM_TOKEN=$(openssl rand -hex 32)
 # Optional — enable invisible Turnstile bot-check:
 fly secrets set TURNSTILE_SITE_KEY=0x4...
@@ -110,5 +111,5 @@ MIT. See `LICENSE`.
 
 - Park et al. 2024, [*Generative Agent Simulations of 1,000 People*](https://arxiv.org/abs/2411.10109) — the architecture this implementation is closest to.
 - Park et al. 2023, [*Generative Agents: Interactive Simulacra of Human Behavior*](https://arxiv.org/abs/2304.03442) — the prior Smallville paper; the conceptual foundation.
-- Anthropic's claude-sonnet-4-5 — the substrate that made the annotated-few-shot approach work.
+- Anthropic's claude-sonnet-4-6 — the current substrate for the annotated-few-shot approach.
 - The conversation with Claude (Anthropic) that built this iteration. The 11 canonical pairs are the artifact of that work.

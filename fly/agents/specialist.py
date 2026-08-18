@@ -21,15 +21,16 @@ Optimizations:
 from __future__ import annotations
 
 import json
-import os
 import re
 from pathlib import Path
 
 import anthropic
 
+from anthropic_config import DEFAULT_ANTHROPIC_MODEL, anthropic_api_key
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 PAIRS_PATH = DATA_DIR / "adversarial_pairs_annotated.json"
-DEFAULT_MODEL = "claude-sonnet-4-5"
+DEFAULT_MODEL = DEFAULT_ANTHROPIC_MODEL
 
 
 # Register block: professional (default — sharp without mean)
@@ -163,10 +164,7 @@ def _build_system_prompt(register_mode: str, n_examples: int) -> str:
 
 class SpecialistAgent:
     def __init__(self, model: str = DEFAULT_MODEL, n_examples: int = 12):
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY required")
-        self.client = anthropic.Anthropic(api_key=api_key)
+        self.client = anthropic.Anthropic(api_key=anthropic_api_key())
         self.model = model
         self.n_examples = n_examples
         # Pre-build both register variants so we cache the right one per request

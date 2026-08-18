@@ -3,7 +3,7 @@
 # Setup once:
 #   fly launch --no-deploy --copy-config
 #     (this will rename the app — pick something unique)
-#   fly secrets set ANTHROPIC_API_KEY=sk-ant-...
+#   fly secrets set WANDER_ANTHROPIC_API_KEY="$WANDER_ANTHROPIC_API_KEY"
 #   fly secrets set OPENAI_API_KEY=sk-proj-...        # only if using the v7-bare generalist
 #   fly secrets set SIMULACRUM_TOKEN=$(openssl rand -hex 32)   # session HMAC key
 #   fly secrets set ALLOWED_USERNAME=your-username     # who can log in (case-insensitive)
@@ -33,7 +33,7 @@ primary_region = "iad"  # us-east; change to closer if needed
   timeout = "5s"
 
 [env]
-  SIMULACRUM_MODEL = "claude-sonnet-4-5"
+  SIMULACRUM_MODEL = "claude-sonnet-4-6"
 
 [[mounts]]
   source = "simulacrum_data"

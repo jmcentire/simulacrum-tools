@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Local Jeremy-simulacrum CLI — two-phase classifier dispatch.
 
-  Phase 1 — classify: Anthropic claude-sonnet-4-5 classifies the latest
+  Phase 1 — classify: Anthropic claude-sonnet-4-6 classifies the latest
             user turn as GENERALIST (autobiographical / pure recall) or
             SPECIALIST (everything else — opinion, suggestion, draft,
             adversarial framing, multi-turn continuation).
@@ -9,7 +9,7 @@
   Phase 2 — dispatch:
             GENERALIST → fine-tuned OpenAI model (only if GENERALIST_MODEL
                          env var is set; otherwise routes to specialist)
-            SPECIALIST → Anthropic claude-sonnet-4-5 + annotated few-shot
+            SPECIALIST → Anthropic claude-sonnet-4-6 + annotated few-shot
                          pairs + Mode-A operationalized-criterion classifier
 
 Usage:
@@ -23,8 +23,9 @@ History format: JSON array of [role, text] pairs.
 
 Diagnostics (phase, agent, mode) → stderr unless --quiet is passed.
 
-Required env vars:
-  ANTHROPIC_API_KEY    — for the specialist + classifier
+Anthropic key resolution (first non-empty value):
+  WANDER_ANTHROPIC_API_KEY, SIM_ANTHROPIC_API_KEY,
+  ANTHROPIC_API_KEY, JMC_ANTHROPIC_API_KEY
 
 Optional env vars (enable the generalist branch):
   OPENAI_API_KEY       — for the fine-tune call
@@ -49,8 +50,15 @@ from pathlib import Path
 
 # ---- Config / resolvers ----
 
-CLASSIFIER_MODEL = "claude-sonnet-4-5"
-SPECIALIST_MODEL = "claude-sonnet-4-5"
+DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
+CLASSIFIER_MODEL = os.environ.get(
+    "SIMULACRUM_CLASSIFIER_MODEL",
+    os.environ.get("SIMULACRUM_MODEL", DEFAULT_ANTHROPIC_MODEL),
+)
+SPECIALIST_MODEL = os.environ.get(
+    "SIMULACRUM_SPECIALIST_MODEL",
+    os.environ.get("SIMULACRUM_MODEL", DEFAULT_ANTHROPIC_MODEL),
+)
 GENERALIST_MODEL = os.environ.get("GENERALIST_MODEL", "")  # empty = generalist disabled
 
 
@@ -68,10 +76,16 @@ def _find_data() -> Path:
 
 
 def _find_anthropic_key() -> str:
-    v = os.environ.get("ANTHROPIC_API_KEY")
-    if v:
-        return v
-    sys.exit("Set ANTHROPIC_API_KEY for the specialist + classifier.")
+    for name in (
+        "WANDER_ANTHROPIC_API_KEY",
+        "SIM_ANTHROPIC_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "JMC_ANTHROPIC_API_KEY",
+    ):
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    sys.exit("Set WANDER_ANTHROPIC_API_KEY (preferred) or another Anthropic API key.")
 
 
 def _find_openai_key() -> str:

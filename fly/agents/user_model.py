@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 from typing import Any
 
 import anthropic
 
+from anthropic_config import DEFAULT_ANTHROPIC_MODEL, anthropic_api_key
 
-DEFAULT_MODEL = "claude-sonnet-4-5"
+DEFAULT_MODEL = DEFAULT_ANTHROPIC_MODEL
 
 
 def _parse_json(text: str) -> dict[str, Any]:
@@ -54,7 +54,7 @@ def compact_profile(profile: dict[str, Any]) -> dict[str, Any]:
 
 class UserModelService:
     def __init__(self, model: str = DEFAULT_MODEL, client: Any | None = None):
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        api_key = anthropic_api_key(required=False)
         self.client = client or (anthropic.Anthropic(api_key=api_key) if api_key else None)
         self.model = model
 

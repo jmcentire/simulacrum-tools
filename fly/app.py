@@ -4,7 +4,7 @@ The /chat endpoint dispatches each turn between two agents:
   GENERALIST → fine-tuned model for direct-recall, autobiographical,
                well-formed-direct questions (optional — only fires if
                GENERALIST_MODEL env var is set)
-  SPECIALIST → Anthropic claude-sonnet-4-5 + annotated few-shot pairs
+  SPECIALIST → Anthropic claude-sonnet-4-6 + annotated few-shot pairs
                for adversarial framings, content generation, suggestions,
                critique, multi-turn continuation
 
@@ -33,6 +33,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from anthropic_config import anthropic_api_key
 from agents.dispatcher import Dispatcher
 from agents.generalist import is_configured as generalist_configured
 from agents.teach import TeachAgent
@@ -46,7 +47,6 @@ from management_sim.router import router as management_sim_router
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 SECRET_KEY = os.environ.get("SIMULACRUM_TOKEN") or secrets.token_hex(32)
 TURNSTILE_SECRET = os.environ.get("TURNSTILE_SECRET")
 TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "")
@@ -59,8 +59,7 @@ WINDOW_SECONDS = 24 * 3600
 CAP_PER_WINDOW = int(os.environ.get("CAP_PER_WINDOW", "20"))
 COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "1") != "0"
 
-if not ANTHROPIC_API_KEY:
-    raise RuntimeError("ANTHROPIC_API_KEY env var required (specialist + classifier)")
+anthropic_api_key()
 
 dispatcher = Dispatcher()
 teach = TeachAgent()

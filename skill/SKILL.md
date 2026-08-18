@@ -7,7 +7,7 @@ argument-hint: "<your idea/claim/question>"
 
 # /simulacrum — Run ideas past the Jeremy-simulacrum
 
-Local CLI wrapper. Two-phase dispatch: a classifier routes each turn to either the recall branch (OpenAI fine-tune; optional) or the content/adversarial branch (Anthropic claude-sonnet-4-5).
+Local CLI wrapper. Two-phase dispatch: a classifier routes each turn to either the recall branch (OpenAI fine-tune; optional) or the content/adversarial branch (Anthropic claude-sonnet-4-6).
 
 ## How to invoke
 
@@ -56,9 +56,16 @@ If the input is genuinely well-formed, the simulacrum engages directly rather th
 
 ## Configuration
 
-Required env vars:
+Anthropic API key lookup (first non-empty value wins):
 
-- `ANTHROPIC_API_KEY` — for the specialist + classifier (always required)
+1. `WANDER_ANTHROPIC_API_KEY` (preferred billing account)
+2. `SIM_ANTHROPIC_API_KEY`
+3. `ANTHROPIC_API_KEY`
+4. `JMC_ANTHROPIC_API_KEY`
+
+The classifier and specialist default to `claude-sonnet-4-6`. Override both
+with `SIMULACRUM_MODEL`, or one with `SIMULACRUM_CLASSIFIER_MODEL` and
+`SIMULACRUM_SPECIALIST_MODEL`.
 
 Optional env vars (enables the generalist branch — better autobiographical recall):
 

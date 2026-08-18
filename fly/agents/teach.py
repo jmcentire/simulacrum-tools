@@ -17,16 +17,16 @@ the learner's current claim warrants correction or challenge.
 from __future__ import annotations
 
 import json
-import os
 import re
 from typing import Any
 
 import anthropic
 
+from anthropic_config import DEFAULT_ANTHROPIC_MODEL, anthropic_api_key
 from .specialist import PROFESSIONAL_REGISTER, SAILOR_REGISTER
 from .user_model import detect_pressure_mismatch
 
-DEFAULT_MODEL = "claude-sonnet-4-5"
+DEFAULT_MODEL = DEFAULT_ANTHROPIC_MODEL
 
 INTERVENTIONS = (
     "validate_safety",
@@ -168,10 +168,7 @@ def _parse_json(text: str) -> dict[str, Any]:
 
 class TeachAgent:
     def __init__(self, model: str = DEFAULT_MODEL):
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY required")
-        self.client = anthropic.Anthropic(api_key=api_key)
+        self.client = anthropic.Anthropic(api_key=anthropic_api_key())
         self.model = model
 
     def _json_pass(self, instruction: str, payload: str) -> dict[str, Any]:

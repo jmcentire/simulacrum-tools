@@ -10,6 +10,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
+COPY anthropic_config.py .
 COPY auth.py .
 COPY db.py .
 COPY chat_memory.py .
