@@ -57,7 +57,7 @@
     <blockquote>A simulacrum is a model of someone's <em>cognitive moves</em> — the specific patterns of thought they apply to novel situations. It is NOT a style-transfer of their writing voice. The two get conflated; they are not the same problem.</blockquote>
 
     <a class="cta" href="https://simulacrum.tools">Try it live →</a>
-    <a class="cta secondary" href="https://github.com/jmcentire/simulacrum">Source on GitHub</a>
+    <a class="cta secondary" href="https://github.com/jmcentire/simulacrum-tools">Source on GitHub</a>
 
     <h2>What it is</h2>
     <p>An open-source generative agent system that mimics how one specific person reasons — not how they write. It engages with arguments the way Jeremy does: interrogates load-bearing assumptions, demands operationalized criteria, refuses well-shaped questions only when the shape is genuinely malformed, demolishes the framing when it isn't.</p>
@@ -76,10 +76,10 @@
     <p>The system prompt carries two load-bearing meta-rules: <strong>assumption-interrogation</strong> (before applying conventional advice, identify the assumption it depends on and check whether it holds) and <strong>architecture-review posture</strong> (when reviewing existing systems, identify the constraint envelope first; demand it if missing; don't alternative-shop).</p>
 
     <h2>Build your own</h2>
-    <p>The repo is configured as Jeremy's simulacrum, but the pattern transfers. See <a href="https://github.com/jmcentire/simulacrum/blob/main/PRIMER.md">PRIMER.md</a> for a step-by-step recipe distilled from eight architectural iterations: what works (annotated few-shot, two-phase dispatch), what doesn't (graph retrieval, multi-substrate ensembles, behavior dispatchers), and the order of operations that avoids the dead ends.</p>
+    <p>The repo is configured as Jeremy's simulacrum, but the pattern transfers. See <a href="https://github.com/jmcentire/simulacrum-tools/blob/main/PRIMER.md">PRIMER.md</a> for a step-by-step recipe distilled from eight architectural iterations: what works (annotated few-shot, two-phase dispatch), what doesn't (graph retrieval, multi-substrate ensembles, behavior dispatchers), and the order of operations that avoids the dead ends.</p>
 
     <h2>Quick start (local CLI)</h2>
-    <pre>git clone https://github.com/jmcentire/simulacrum.git
+    <pre>git clone https://github.com/jmcentire/simulacrum-tools.git
 cd simulacrum/skill
 ln -s ../fly/data/adversarial_pairs_annotated.json .
 pip install anthropic openai
@@ -88,7 +88,7 @@ export WANDER_ANTHROPIC_API_KEY=sk-ant-...  # preferred when available
 ./run.py "Every team needs a strong manager."</pre>
 
     <h2>Quick start (Claude Code plugin)</h2>
-    <pre>git clone https://github.com/jmcentire/simulacrum.git
+    <pre>git clone https://github.com/jmcentire/simulacrum-tools.git
 claude --plugin-dir ./simulacrum</pre>
     <p>Invoke <code>/simulacrum:get-advice</code> with an idea, plan, claim, draft, or architecture question.</p>
 
@@ -116,7 +116,7 @@ fly deploy</pre>
     </ul>
 
     <footer>
-      <a href="https://github.com/jmcentire/simulacrum">Source</a> ·
+      <a href="https://github.com/jmcentire/simulacrum-tools">Source</a> ·
       <a href="https://simulacrum.tools">Live demo</a> ·
       <a href="https://exemplar.tools">Exemplar</a> ·
       <a href="https://signet.tools">Signet</a> ·

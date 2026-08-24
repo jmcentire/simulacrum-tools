@@ -277,7 +277,7 @@ def _landing_page() -> HTMLResponse:
           <p>Pitch an idea, propose a frame, claim something. Professional for sharp pushback when the framing has a flaw, and direct engagement when it does not.</p>
           <div class="links">
             <a href="https://arxiv.org/abs/2411.10109" target="_blank" rel="noopener">Paper</a>
-            <a href="https://github.com/jmcentire/simulacrum" target="_blank" rel="noopener">Code</a>
+            <a href="https://github.com/jmcentire/simulacrum-tools" target="_blank" rel="noopener">Code</a>
             <a href="/privacy">Privacy</a>
             <a href="/terms">Terms</a>
           </div>

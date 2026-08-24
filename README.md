@@ -50,7 +50,7 @@ SQLite, so issued codes remain one-time use.
 ## Quick start (local CLI)
 
 ```bash
-git clone https://github.com/jmcentire/simulacrum.git
+git clone https://github.com/jmcentire/simulacrum-tools.git
 cd simulacrum/skill
 ln -s ../fly/data/adversarial_pairs_annotated.json .
 pip install anthropic openai
@@ -62,7 +62,7 @@ export WANDER_ANTHROPIC_API_KEY=sk-ant-...  # preferred when available
 ## Quick start (Claude Code plugin)
 
 ```bash
-git clone https://github.com/jmcentire/simulacrum.git
+git clone https://github.com/jmcentire/simulacrum-tools.git
 claude --plugin-dir ./simulacrum
 ```
 
