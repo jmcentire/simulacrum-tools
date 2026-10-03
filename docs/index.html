@@ -83,8 +83,7 @@
 cd simulacrum/skill
 ln -s ../fly/data/adversarial_pairs_annotated.json .
 pip install anthropic openai
-export WANDER_ANTHROPIC_API_KEY=sk-ant-...  # preferred when available
-# Portable fallback: export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=sk-ant-...
 ./run.py "Every team needs a strong manager."</pre>
 
     <h2>Quick start (Claude Code plugin)</h2>
@@ -95,7 +94,7 @@ claude --plugin-dir ./simulacrum</pre>
     <h2>Quick start (Fly deployment)</h2>
     <pre>cd simulacrum/fly
 fly launch --no-deploy --copy-config       # rename the app
-fly secrets set WANDER_ANTHROPIC_API_KEY="$WANDER_ANTHROPIC_API_KEY"
+fly secrets set ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
 fly secrets set SIMULACRUM_TOKEN=$(openssl rand -hex 32)
 fly deploy</pre>
 

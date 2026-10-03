@@ -1,0 +1,4 @@
+{
+  "_comment": "Copy to $XDG_CONFIG_HOME/simulacrum/config.json (default ~/.config/simulacrum/config.json). Never commit the real file. anthropic_api_key_env lists the env vars to read the Anthropic key from, first set wins; default [\"ANTHROPIC_API_KEY\"]. SIMULACRUM_ANTHROPIC_API_KEY_ENV (comma-separated) overrides it.",
+  "anthropic_api_key_env": ["MY_TEAM_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"]
+}

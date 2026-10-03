@@ -3,7 +3,7 @@
 # Setup once:
 #   fly launch --no-deploy --copy-config
 #     (this will rename the app — pick something unique)
-#   fly secrets set WANDER_ANTHROPIC_API_KEY="$WANDER_ANTHROPIC_API_KEY"
+#   fly secrets set ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
 #   fly secrets set OPENAI_API_KEY=sk-proj-...        # only if using the v7-bare generalist
 #   fly secrets set SIMULACRUM_TOKEN=$(openssl rand -hex 32)   # session HMAC key
 #   fly secrets set ALLOWED_USERNAME=your-username     # who can log in (case-insensitive)
