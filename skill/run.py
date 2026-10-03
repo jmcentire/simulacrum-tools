@@ -24,8 +24,10 @@ History format: JSON array of [role, text] pairs.
 Diagnostics (phase, agent, mode) → stderr unless --quiet is passed.
 
 Anthropic key resolution (first non-empty value):
-  WANDER_ANTHROPIC_API_KEY, SIM_ANTHROPIC_API_KEY,
-  ANTHROPIC_API_KEY, JMC_ANTHROPIC_API_KEY
+  ANTHROPIC_API_KEY by default. To try other variable names, in order, set
+  SIMULACRUM_ANTHROPIC_API_KEY_ENV="FIRST,SECOND", or put
+  {"anthropic_api_key_env": ["FIRST", "SECOND"]} in
+  $XDG_CONFIG_HOME/simulacrum/config.json (default ~/.config/simulacrum/).
 
 Optional env vars (enable the generalist branch):
   OPENAI_API_KEY       — for the fine-tune call
@@ -75,17 +77,48 @@ def _find_data() -> Path:
              "Set $SIMULACRUM_DATA or place alongside run.py.")
 
 
+# Mirrors fly/anthropic_config.py; this script is deliberately self-contained.
+_DEFAULT_ANTHROPIC_API_KEY_ENV_VARS = ("ANTHROPIC_API_KEY",)
+_API_KEY_ENV_OVERRIDE = "SIMULACRUM_ANTHROPIC_API_KEY_ENV"
+
+
+def _anthropic_key_env_vars() -> tuple[str, ...]:
+    override = os.environ.get(_API_KEY_ENV_OVERRIDE, "")
+    names = tuple(n.strip() for n in override.split(",") if n.strip())
+    if names:
+        return names
+    base = os.environ.get("XDG_CONFIG_HOME", "").strip()
+    path = (Path(base) if base else Path.home() / ".config") / "simulacrum" / "config.json"
+    if path.is_file():
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            sys.exit(f"simulacrum: cannot read config {path}: {exc}")
+        configured = data.get("anthropic_api_key_env") if isinstance(data, dict) else None
+        if configured is not None:
+            if not (
+                isinstance(configured, list)
+                and all(isinstance(n, str) and n.strip() for n in configured)
+            ):
+                sys.exit(
+                    f"simulacrum: {path}: anthropic_api_key_env must be a list of "
+                    "environment variable names"
+                )
+            if configured:
+                return tuple(n.strip() for n in configured)
+    return _DEFAULT_ANTHROPIC_API_KEY_ENV_VARS
+
+
 def _find_anthropic_key() -> str:
-    for name in (
-        "WANDER_ANTHROPIC_API_KEY",
-        "SIM_ANTHROPIC_API_KEY",
-        "ANTHROPIC_API_KEY",
-        "JMC_ANTHROPIC_API_KEY",
-    ):
+    names = _anthropic_key_env_vars()
+    for name in names:
         value = os.environ.get(name, "").strip()
         if value:
             return value
-    sys.exit("Set WANDER_ANTHROPIC_API_KEY (preferred) or another Anthropic API key.")
+    sys.exit(
+        f"Set {' or '.join(names)} (variable names are configurable via "
+        f"{_API_KEY_ENV_OVERRIDE})."
+    )
 
 
 def _find_openai_key() -> str:

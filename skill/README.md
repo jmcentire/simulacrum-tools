@@ -12,12 +12,13 @@ ln -s ../fly/data/adversarial_pairs_annotated.json .   # or set $SIMULACRUM_DATA
 ## Anthropic billing
 
 ```bash
-export WANDER_ANTHROPIC_API_KEY=sk-ant-...  # preferred when available
-# Portable fallback: export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-The CLI uses the first non-empty value from `WANDER_ANTHROPIC_API_KEY`,
-`SIM_ANTHROPIC_API_KEY`, `ANTHROPIC_API_KEY`, and `JMC_ANTHROPIC_API_KEY`.
+The CLI reads `ANTHROPIC_API_KEY`. To try other variable names in order, set
+`SIMULACRUM_ANTHROPIC_API_KEY_ENV="FIRST,SECOND"` or list them under
+`anthropic_api_key_env` in `$XDG_CONFIG_HOME/simulacrum/config.json`
+(default `~/.config/simulacrum/config.json`; see `config.example.json`).
 Classifier and specialist calls default to `claude-sonnet-4-6`; use
 `SIMULACRUM_MODEL` or the phase-specific model variables to override it.
 

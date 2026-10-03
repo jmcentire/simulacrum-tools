@@ -56,12 +56,11 @@ If the input is genuinely well-formed, the simulacrum engages directly rather th
 
 ## Configuration
 
-Anthropic API key lookup (first non-empty value wins):
-
-1. `WANDER_ANTHROPIC_API_KEY` (preferred billing account)
-2. `SIM_ANTHROPIC_API_KEY`
-3. `ANTHROPIC_API_KEY`
-4. `JMC_ANTHROPIC_API_KEY`
+Anthropic API key: `ANTHROPIC_API_KEY` by default. To try other variable names
+in order (first non-empty value wins), set
+`SIMULACRUM_ANTHROPIC_API_KEY_ENV="FIRST,SECOND"` or list them under
+`anthropic_api_key_env` in `$XDG_CONFIG_HOME/simulacrum/config.json`
+(default `~/.config/simulacrum/config.json`).
 
 The classifier and specialist default to `claude-sonnet-4-6`. Override both
 with `SIMULACRUM_MODEL`, or one with `SIMULACRUM_CLASSIFIER_MODEL` and

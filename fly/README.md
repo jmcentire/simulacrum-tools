@@ -7,7 +7,7 @@ management simulation module.
 
 ```bash
 fly launch --no-deploy --copy-config         # rename the app — pick something unique
-fly secrets set WANDER_ANTHROPIC_API_KEY="$WANDER_ANTHROPIC_API_KEY"
+fly secrets set ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
 fly secrets set SIMULACRUM_TOKEN=$(openssl rand -hex 32)   # session HMAC key
 fly secrets set RESEND_API_KEY=re_...
 fly secrets set RESEND_FROM="Simulacrum <onboarding@your-domain>"
@@ -28,10 +28,12 @@ fly deploy
 
 Without `OPENAI_API_KEY` + `GENERALIST_MODEL`, the dispatcher routes everything to the specialist. Still works; weaker on pure autobiographical recall.
 
-Anthropic clients use the first non-empty key from
-`WANDER_ANTHROPIC_API_KEY`, `SIM_ANTHROPIC_API_KEY`, `ANTHROPIC_API_KEY`, and
-`JMC_ANTHROPIC_API_KEY`. The Wander key is therefore the billing source when
-it is configured, while the generic name remains a portable fallback.
+Anthropic clients read `ANTHROPIC_API_KEY`. To bill through differently named
+variables, set `SIMULACRUM_ANTHROPIC_API_KEY_ENV` to a comma-separated list of
+variable names (first non-empty value wins), e.g.
+`fly secrets set SIMULACRUM_ANTHROPIC_API_KEY_ENV="TEAM_ANTHROPIC_API_KEY,ANTHROPIC_API_KEY"`.
+Outside Fly, the same list can live in `$XDG_CONFIG_HOME/simulacrum/config.json`
+(see `config.example.json` at the repo root); the env var wins over the file.
 
 ## Endpoints
 

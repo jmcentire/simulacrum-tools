@@ -2,6 +2,7 @@ import importlib.util
 import json
 import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -14,12 +15,13 @@ sys.path.insert(0, str(FLY))
 import anthropic_config  # noqa: E402
 
 
-ANTHROPIC_KEY_NAMES = (
-    "WANDER_ANTHROPIC_API_KEY",
-    "SIM_ANTHROPIC_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "JMC_ANTHROPIC_API_KEY",
-)
+ORDER_OVERRIDE = "SIMULACRUM_ANTHROPIC_API_KEY_ENV"
+TEAM_ORDER = ("TEAM_ANTHROPIC_API_KEY", "OTHER_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY")
+ALL_KEYS = {
+    "TEAM_ANTHROPIC_API_KEY": "team-key",
+    "OTHER_ANTHROPIC_API_KEY": "other-key",
+    "ANTHROPIC_API_KEY": "generic-key",
+}
 
 
 def load_skill_run():
@@ -31,48 +33,74 @@ def load_skill_run():
 
 
 class AnthropicRoutingTests(unittest.TestCase):
-    def test_fly_prefers_wander_billing_key(self):
-        values = {
-            "WANDER_ANTHROPIC_API_KEY": "wander-key",
-            "SIM_ANTHROPIC_API_KEY": "sim-key",
-            "ANTHROPIC_API_KEY": "generic-key",
-            "JMC_ANTHROPIC_API_KEY": "jmc-key",
-        }
-        with patch.dict(os.environ, values, clear=True):
-            self.assertEqual(anthropic_config.anthropic_api_key(), "wander-key")
+    def setUp(self):
+        # Never read the operator's real ~/.config during tests.
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.xdg = Path(self._tmp.name)
 
-    def test_fly_retains_portable_fallbacks(self):
-        for index, name in enumerate(ANTHROPIC_KEY_NAMES):
+    def env(self, **extra):
+        values = {"XDG_CONFIG_HOME": str(self.xdg)}
+        values.update(extra)
+        return patch.dict(os.environ, values, clear=True)
+
+    def write_config(self, payload):
+        cfg = self.xdg / "simulacrum" / "config.json"
+        cfg.parent.mkdir(parents=True, exist_ok=True)
+        cfg.write_text(payload if isinstance(payload, str) else json.dumps(payload))
+
+    def test_fly_defaults_to_standard_key_name(self):
+        with self.env(**ALL_KEYS):
+            self.assertEqual(anthropic_config.anthropic_api_key(), "generic-key")
+
+    def test_fly_order_from_env_override_with_fallbacks(self):
+        for index, name in enumerate(TEAM_ORDER):
             with self.subTest(name=name):
-                values = {candidate: "" for candidate in ANTHROPIC_KEY_NAMES[:index]}
+                values = {candidate: "" for candidate in TEAM_ORDER[:index]}
                 values[name] = f"{name}-value"
-                with patch.dict(os.environ, values, clear=True):
+                values[ORDER_OVERRIDE] = ", ".join(TEAM_ORDER)
+                with self.env(**values):
                     self.assertEqual(
                         anthropic_config.anthropic_api_key(),
                         f"{name}-value",
                     )
 
-    def test_fly_missing_key_can_be_required_or_optional(self):
-        with patch.dict(os.environ, {}, clear=True):
-            self.assertIsNone(anthropic_config.anthropic_api_key(required=False))
-            with self.assertRaisesRegex(RuntimeError, "WANDER_ANTHROPIC_API_KEY"):
+    def test_fly_order_from_config_file_and_env_precedence(self):
+        self.write_config({"anthropic_api_key_env": list(TEAM_ORDER)})
+        with self.env(**ALL_KEYS):
+            self.assertEqual(anthropic_config.anthropic_api_key(), "team-key")
+        with self.env(**ALL_KEYS, **{ORDER_OVERRIDE: "OTHER_ANTHROPIC_API_KEY"}):
+            self.assertEqual(anthropic_config.anthropic_api_key(), "other-key")
+
+    def test_fly_malformed_config_fails_loudly(self):
+        self.write_config({"anthropic_api_key_env": "NOT_A_LIST"})
+        with self.env(**ALL_KEYS):
+            with self.assertRaisesRegex(RuntimeError, "anthropic_api_key_env"):
                 anthropic_config.anthropic_api_key()
 
-    def test_skill_prefers_wander_and_defaults_to_current_model(self):
+    def test_fly_missing_key_can_be_required_or_optional(self):
+        with self.env():
+            self.assertIsNone(anthropic_config.anthropic_api_key(required=False))
+            with self.assertRaisesRegex(RuntimeError, "ANTHROPIC_API_KEY"):
+                anthropic_config.anthropic_api_key()
+
+    def test_skill_key_order_and_default_model(self):
         with patch.dict(os.environ, {}, clear=True):
             skill = load_skill_run()
         self.assertEqual(skill.DEFAULT_ANTHROPIC_MODEL, "claude-sonnet-4-6")
         self.assertEqual(skill.CLASSIFIER_MODEL, "claude-sonnet-4-6")
         self.assertEqual(skill.SPECIALIST_MODEL, "claude-sonnet-4-6")
 
-        values = {
-            "WANDER_ANTHROPIC_API_KEY": "wander-key",
-            "SIM_ANTHROPIC_API_KEY": "sim-key",
-            "ANTHROPIC_API_KEY": "generic-key",
-            "JMC_ANTHROPIC_API_KEY": "jmc-key",
-        }
-        with patch.dict(os.environ, values, clear=True):
-            self.assertEqual(skill._find_anthropic_key(), "wander-key")
+        with self.env(**ALL_KEYS):
+            self.assertEqual(skill._find_anthropic_key(), "generic-key")
+        with self.env(**ALL_KEYS, **{ORDER_OVERRIDE: ",".join(TEAM_ORDER)}):
+            self.assertEqual(skill._find_anthropic_key(), "team-key")
+        self.write_config({"anthropic_api_key_env": ["OTHER_ANTHROPIC_API_KEY"]})
+        with self.env(**ALL_KEYS):
+            self.assertEqual(skill._find_anthropic_key(), "other-key")
+        with self.env():
+            with self.assertRaises(SystemExit):
+                skill._find_anthropic_key()
 
     def test_every_fly_anthropic_client_uses_shared_resolver(self):
         client_files = (

@@ -54,8 +54,7 @@ git clone https://github.com/jmcentire/simulacrum-tools.git
 cd simulacrum/skill
 ln -s ../fly/data/adversarial_pairs_annotated.json .
 pip install anthropic openai
-export WANDER_ANTHROPIC_API_KEY=sk-ant-...  # preferred when available
-# Portable fallback: export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=sk-ant-...
 ./run.py "Every team needs a strong manager."
 ```
 
@@ -73,7 +72,7 @@ Then invoke `/simulacrum:get-advice` with an idea, plan, claim, draft, or archit
 ```bash
 cd simulacrum/fly
 fly launch --no-deploy --copy-config        # rename the app — pick something unique
-fly secrets set WANDER_ANTHROPIC_API_KEY="$WANDER_ANTHROPIC_API_KEY"
+fly secrets set ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
 fly secrets set SIMULACRUM_TOKEN=$(openssl rand -hex 32)
 # Optional — enable invisible Turnstile bot-check:
 fly secrets set TURNSTILE_SITE_KEY=0x4...
